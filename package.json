@@ -1,6 +1,6 @@
 {
   "name": "metal-on-symbol-sample",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Metal on Symbol TypeScript SDK Sample Code",
   "main": "index.js",
   "author": "Shinichi Hanayama <hanatyan@opensphere.co.jp>",
@@ -13,8 +13,9 @@
   },
   "dependencies": {
     "dotenv": "^16.0.3",
+    "js-base64": "^3.7.3",
     "js-sha3": "https://github.com/Propine/js-sha3.git",
-    "metal-on-symbol": "^0.1.11",
+    "metal-on-symbol": "^0.1.14",
     "symbol-sdk": "^2.0.3"
   },
   "scripts": {

@@ -8,12 +8,12 @@ import {Convert} from "symbol-sdk";
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
 const metalId = "Your Metal ID here";
-const payload = Buffer.from(Convert.utf8ToUint8("Test Data Here"));
+const payload = Convert.utf8ToUint8("Test Data Here");
 // -----------------------
 
 const verifyMetal = async (
     metalId: string,
-    payload: Buffer,
+    payload: Uint8Array,
 ) => {
     const {
         metadataType: type,

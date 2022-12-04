@@ -8,7 +8,7 @@ import assert from "assert";
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
 const privateKey = process.env.TEST_PRIVATE_KEY;
-const payload = Buffer.from(Convert.utf8ToUint8("Test Data Here"));
+const payload = Convert.utf8ToUint8("Test Data Here");
 // -----------------------
 
 const forgeMetal = async (
@@ -16,7 +16,7 @@ const forgeMetal = async (
     sourceAccount: PublicAccount,
     targetAccount: PublicAccount,
     targetId: undefined | MosaicId | NamespaceId,
-    payload: Buffer,
+    payload: Uint8Array,
     signer: Account,
     cosigners: Account[],
     additive?: Uint8Array,

@@ -13,6 +13,7 @@ import {
     NetworkType,
     UInt64
 } from "symbol-sdk";
+import {Base64} from "js-base64";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
@@ -35,7 +36,7 @@ const decode = async (
             targetId
         });
     const payloadBase64 = MetalService.decode(key, metadataPool);
-    return Buffer.from(payloadBase64, "base64");
+    return Base64.toUint8Array(payloadBase64);
 };
 
 assert(privateKey);
