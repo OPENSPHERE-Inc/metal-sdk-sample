@@ -3,40 +3,24 @@ dotenv.config();
 
 import assert from "assert";
 import {MetalService, SymbolService} from "metal-on-symbol";
-import {
-    Account,
-    Address,
-    Convert,
-    MetadataType,
-    MosaicId,
-    NamespaceId,
-    NetworkType,
-    UInt64
-} from "symbol-sdk";
-import {Base64} from "js-base64";
+import {Account, Address, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, UInt64} from "symbol-sdk";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
-const privateKey = process.env.TEST_PRIVATE_KEY;
+const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signer/source/target
 const key =  UInt64.fromHex("Your Metadata Key here");
 // -----------------------
 
-const decode = async (
+const fetchMetal = async (
     type: MetadataType,
     sourceAddress: Address,
     targetAddress: Address,
     targetId: undefined | MosaicId | NamespaceId,
     key: UInt64
 ) => {
-    const metadataPool = await SymbolService.searchMetadata(
-        type,
-        {
-            source: sourceAddress,
-            target: targetAddress,
-            targetId
-        });
-    const payloadBase64 = MetalService.decode(key, metadataPool);
-    return Base64.toUint8Array(payloadBase64);
+    const payload = await MetalService.fetch(type, sourceAddress, targetAddress, targetId, key);
+    const metalId = MetalService.calculateMetalId(type, sourceAddress, targetAddress, targetId, key);
+    return { payload, metalId };
 };
 
 assert(privateKey);
@@ -44,14 +28,14 @@ const signer = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
 
 assert(nodeUrl);
 SymbolService.init({ node_url: nodeUrl });
-decode(
+fetchMetal(
     MetadataType.Account,
     signer.address,
     signer.address,
     undefined,
     key,
-).then((payload) => {
-    console.log(`Decoded!`);
+).then(({ payload, metalId }) => {
+    console.log(`Fetched! metalId=${metalId}`);
     console.log(Convert.uint8ToUtf8(payload));
 }).catch((e) => {
     console.error(e);

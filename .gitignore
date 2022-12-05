@@ -1,4 +1,4 @@
-yarn-error.log
+nodejs/yarn-error.log
 .idea
 .env
 .env.test

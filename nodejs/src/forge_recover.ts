@@ -1,13 +1,13 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import {MetalService, SymbolService} from "metal-on-symbol";
 import {Account, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount} from "symbol-sdk";
+import {MetalService, SymbolService} from "metal-on-symbol";
 import assert from "assert";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
-const privateKey = process.env.TEST_PRIVATE_KEY;
+const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signer/source/target
 const payload = Convert.utf8ToUint8("Test Data Here");
 // -----------------------
 
@@ -21,6 +21,13 @@ const forgeMetal = async (
     cosigners: Account[],
     additive?: Uint8Array,
 ) => {
+    const metadataPool = await SymbolService.searchMetadata(
+        type,
+        {
+            source: sourceAccount,
+            target: targetAccount,
+            targetId
+        });
     const { key, txs, additive: newAdditive } = await MetalService.createForgeTxs(
         type,
         sourceAccount,
@@ -28,6 +35,7 @@ const forgeMetal = async (
         targetId,
         payload,
         additive,
+        metadataPool,
     );
     const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
         txs,
