@@ -42,25 +42,25 @@ const ForgeRecover = () => {
             setMetalId(undefined);
             setError(undefined);
             const { networkType } = await SymbolService.getNetwork();
-            const signer = Account.createFromPrivateKey(data.private_key, networkType);
+            const signerAccount = Account.createFromPrivateKey(data.private_key, networkType);
             const targetId = data.target_id
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
             const { txs } = await MetalService.createForgeTxs(
                 data.type,
-                signer.publicAccount,
-                signer.publicAccount,
+                signerAccount.publicAccount,
+                signerAccount.publicAccount,
                 targetId,
                 Convert.utf8ToUint8(data.payload),
                 data.additive ? Convert.utf8ToUint8(data.additive) : undefined,
             );
             const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
                 txs.slice(0, 1),
-                signer,
+                signerAccount,
                 [],
             );
-            const errors = await SymbolService.executeBatches(batches, signer);
+            const errors = await SymbolService.executeBatches(batches, signerAccount);
             if (errors) {
                 setError("Transaction error.");
                 return;

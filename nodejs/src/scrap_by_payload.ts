@@ -13,18 +13,18 @@ const payload = Convert.utf8ToUint8("Test Data Here");
 
 const destroyMetal = async (
     type: MetadataType,
-    sourceAccount: PublicAccount,
-    targetAccount: PublicAccount,
+    sourcePubAccount: PublicAccount,
+    targetPubAccount: PublicAccount,
     targetId: undefined | MosaicId | NamespaceId,
     payload: Uint8Array,
     additive: Uint8Array,
-    signer: Account,
-    cosigners: Account[]
+    signerAccount: Account,
+    cosignerAccounts: Account[]
 ) => {
     const txs = await MetalService.createDestroyTxs(
         type,
-        sourceAccount,
-        targetAccount,
+        sourcePubAccount,
+        targetPubAccount,
         targetId,
         payload,
         additive,
@@ -34,28 +34,28 @@ const destroyMetal = async (
     }
     const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
         txs,
-        signer,
-        cosigners,
+        signerAccount,
+        cosignerAccounts,
     );
-    const errors = await SymbolService.executeBatches(batches, signer);
+    const errors = await SymbolService.executeBatches(batches, signerAccount);
     if (errors) {
         throw Error("Transaction error.");
     }
 };
 
 assert(privateKey);
-const signer = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
 
 assert(nodeUrl);
 SymbolService.init({ node_url: nodeUrl });
 destroyMetal(
     MetadataType.Account,
-    signer.publicAccount,
-    signer.publicAccount,
+    signerAccount.publicAccount,
+    signerAccount.publicAccount,
     undefined,
     payload,
     Convert.utf8ToUint8("0000"),
-    signer,
+    signerAccount,
     []
 ).then(() => {
     console.log(`Scrapped!`);

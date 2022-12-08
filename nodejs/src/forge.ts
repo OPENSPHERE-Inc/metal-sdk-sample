@@ -13,35 +13,35 @@ const payload = Convert.utf8ToUint8("Test Data Here");
 
 const forgeMetal = async (
     type: MetadataType,
-    sourceAccount: PublicAccount,
-    targetAccount: PublicAccount,
+    sourcePubAccount: PublicAccount,
+    targetPubAccount: PublicAccount,
     targetId: undefined | MosaicId | NamespaceId,
     payload: Uint8Array,
-    signer: Account,
-    cosigners: Account[],
+    signerAccount: Account,
+    cosignerAccounts: Account[],
     additive?: Uint8Array,
 ) => {
     const { key, txs, additive: newAdditive } = await MetalService.createForgeTxs(
         type,
-        sourceAccount,
-        targetAccount,
+        sourcePubAccount,
+        targetPubAccount,
         targetId,
         payload,
         additive,
     );
     const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
         txs,
-        signer,
-        cosigners,
+        signerAccount,
+        cosignerAccounts,
     );
-    const errors = await SymbolService.executeBatches(batches, signer);
+    const errors = await SymbolService.executeBatches(batches, signerAccount);
     if (errors) {
         throw Error("Transaction error.");
     }
     const metalId = MetalService.calculateMetalId(
         type,
-        sourceAccount.address,
-        targetAccount.address,
+        sourcePubAccount.address,
+        targetPubAccount.address,
         targetId,
         key,
     );
@@ -54,17 +54,17 @@ const forgeMetal = async (
 };
 
 assert(privateKey);
-const signer = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
 
 assert(nodeUrl);
 SymbolService.init({ node_url: nodeUrl });
 forgeMetal(
     MetadataType.Account,
-    signer.publicAccount,
-    signer.publicAccount,
+    signerAccount.publicAccount,
+    signerAccount.publicAccount,
     undefined,
     payload,
-    signer,
+    signerAccount,
     []
 ).then(({ metalId, key, additive }) => {
     console.log(`Forged! metalId=${metalId},key=${key.toHex()},additive=${Convert.uint8ToUtf8(additive)}`);

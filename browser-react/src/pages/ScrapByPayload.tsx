@@ -37,15 +37,15 @@ const ScrapByPayload = () => {
             setError(undefined);
             setSucceeded(undefined);
             const { networkType } = await SymbolService.getNetwork();
-            const signer = Account.createFromPrivateKey(data.private_key, networkType);
+            const signerAccount = Account.createFromPrivateKey(data.private_key, networkType);
             const targetId = data.target_id
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
             const txs = await MetalService.createDestroyTxs(
                 data.type,
-                signer.publicAccount,
-                signer.publicAccount,
+                signerAccount.publicAccount,
+                signerAccount.publicAccount,
                 targetId,
                 Convert.utf8ToUint8(data.payload),
                 Convert.utf8ToUint8(data.additive),
@@ -56,10 +56,10 @@ const ScrapByPayload = () => {
             }
             const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
                 txs,
-                signer,
+                signerAccount,
                 [],
             );
-            const errors = await SymbolService.executeBatches(batches, signer);
+            const errors = await SymbolService.executeBatches(batches, signerAccount);
             if (errors) {
                 setError("Transaction error.");
                 return;

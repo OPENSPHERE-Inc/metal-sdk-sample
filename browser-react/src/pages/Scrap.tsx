@@ -30,13 +30,13 @@ const Scrap = () => {
             setError(undefined);
             setSucceeded(undefined);
             const { networkType } = await SymbolService.getNetwork();
-            const signer = Account.createFromPrivateKey(data.private_key, networkType);
+            const signerAccount = Account.createFromPrivateKey(data.private_key, networkType);
             const metadataEntry = (await MetalService.getFirstChunk(data.metal_id)).metadataEntry;
 
             const txs = await MetalService.createScrapTxs(
                 metadataEntry.metadataType,
-                signer.publicAccount,
-                signer.publicAccount,
+                signerAccount.publicAccount,
+                signerAccount.publicAccount,
                 metadataEntry.targetId,
                 metadataEntry.scopedMetadataKey,
             );
@@ -46,10 +46,10 @@ const Scrap = () => {
             }
             const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
                 txs,
-                signer,
+                signerAccount,
                 [],
             );
-            const errors = await SymbolService.executeBatches(batches, signer);
+            const errors = await SymbolService.executeBatches(batches, signerAccount);
             if (errors) {
                 setError("Transaction error.");
                 return;

@@ -24,14 +24,14 @@ const fetchMetal = async (
 };
 
 assert(privateKey);
-const signer = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
 
 assert(nodeUrl);
 SymbolService.init({ node_url: nodeUrl });
 fetchMetal(
     MetadataType.Account,
-    signer.address,
-    signer.address,
+    signerAccount.address,
+    signerAccount.address,
     undefined,
     key,
 ).then(({ payload, metalId }) => {

@@ -13,16 +13,16 @@ const metalId = "Your Metal ID here";
 
 const scrapMetal = async (
     metalId: string,
-    sourceAccount: PublicAccount,
-    targetAccount: PublicAccount,
-    signer: Account,
-    cosigners: Account[]
+    sourcePubAccount: PublicAccount,
+    targetPubAccount: PublicAccount,
+    signerAccount: Account,
+    cosignerAccounts: Account[]
 ) => {
     const metadataEntry = (await MetalService.getFirstChunk(metalId)).metadataEntry;
     const txs = await MetalService.createScrapTxs(
         metadataEntry.metadataType,
-        sourceAccount,
-        targetAccount,
+        sourcePubAccount,
+        targetPubAccount,
         metadataEntry.targetId,
         metadataEntry.scopedMetadataKey,
     );
@@ -31,25 +31,25 @@ const scrapMetal = async (
     }
     const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
         txs,
-        signer,
-        cosigners,
+        signerAccount,
+        cosignerAccounts,
     );
-    const errors = await SymbolService.executeBatches(batches, signer);
+    const errors = await SymbolService.executeBatches(batches, signerAccount);
     if (errors) {
         throw Error("Transaction error.");
     }
 };
 
 assert(privateKey);
-const signer = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
 
 assert(nodeUrl);
 SymbolService.init({ node_url: nodeUrl });
 scrapMetal(
     metalId,
-    signer.publicAccount,
-    signer.publicAccount,
-    signer,
+    signerAccount.publicAccount,
+    signerAccount.publicAccount,
+    signerAccount,
     []
 ).then(() => {
     console.log(`Scrapped!`);
