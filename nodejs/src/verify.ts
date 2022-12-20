@@ -11,6 +11,10 @@ const metalId = "Your Metal ID here";
 const payload = Convert.utf8ToUint8("Test Data Here");
 // -----------------------
 
+assert(nodeUrl);
+const symbolService = new SymbolService({ node_url: nodeUrl });
+const metalService = new MetalService(symbolService);
+
 const verifyMetal = async (
     metalId: string,
     payload: Uint8Array,
@@ -21,8 +25,8 @@ const verifyMetal = async (
         targetAddress,
         targetId,
         scopedMetadataKey: key,
-    } = (await MetalService.getFirstChunk(metalId)).metadataEntry;
-    const { mismatches } = await MetalService.verify(
+    } = (await metalService.getFirstChunk(metalId)).metadataEntry;
+    const { mismatches } = await metalService.verify(
         payload,
         type,
         sourceAddress,
@@ -33,8 +37,6 @@ const verifyMetal = async (
     return mismatches === 0;
 };
 
-assert(nodeUrl);
-SymbolService.init({ node_url: nodeUrl });
 verifyMetal(
     metalId,
     payload,

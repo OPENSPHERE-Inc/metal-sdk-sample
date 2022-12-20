@@ -7,11 +7,12 @@ import {Link} from "react-router-dom";
 
 
 assert(process.env.REACT_APP_NODE_URL);
-SymbolService.init({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
+const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
         websocketInjected: WebSocket,
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
+const metalService = new MetalService(symbolService);
 
 interface FormData {
     type: MetadataType;
@@ -41,13 +42,13 @@ const ForgeRecover = () => {
             setPartial(false);
             setMetalId(undefined);
             setError(undefined);
-            const { networkType } = await SymbolService.getNetwork();
+            const { networkType } = await symbolService.getNetwork();
             const signerAccount = Account.createFromPrivateKey(data.private_key, networkType);
             const targetId = data.target_id
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
-            const { txs } = await MetalService.createForgeTxs(
+            const { txs } = await metalService.createForgeTxs(
                 data.type,
                 signerAccount.publicAccount,
                 signerAccount.publicAccount,
@@ -55,12 +56,12 @@ const ForgeRecover = () => {
                 Convert.utf8ToUint8(data.payload),
                 data.additive ? Convert.utf8ToUint8(data.additive) : undefined,
             );
-            const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
+            const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
                 txs.slice(0, 1),
                 signerAccount,
                 [],
             );
-            const errors = await SymbolService.executeBatches(batches, signerAccount);
+            const errors = await symbolService.executeBatches(batches, signerAccount);
             if (errors) {
                 setError("Transaction error.");
                 return;
@@ -78,20 +79,20 @@ const ForgeRecover = () => {
         try {
             setMetalId(undefined);
             setError(undefined);
-            const { networkType } = await SymbolService.getNetwork();
+            const { networkType } = await symbolService.getNetwork();
             const signer = Account.createFromPrivateKey(data.private_key, networkType);
             const targetId = data.target_id
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
-            const metadataPool = await SymbolService.searchMetadata(
+            const metadataPool = await symbolService.searchMetadata(
                 data.type,
                 {
                     source: signer.publicAccount,
                     target: signer.publicAccount,
                     targetId
                 });
-            const { key, txs, additive } = await MetalService.createForgeTxs(
+            const { key, txs, additive } = await metalService.createForgeTxs(
                 data.type,
                 signer.publicAccount,
                 signer.publicAccount,
@@ -100,12 +101,12 @@ const ForgeRecover = () => {
                 data.additive ? Convert.utf8ToUint8(data.additive) : undefined,
                 metadataPool,
             );
-            const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
+            const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
                 txs,
                 signer,
                 [],
             );
-            const errors = await SymbolService.executeBatches(batches, signer);
+            const errors = await symbolService.executeBatches(batches, signer);
             if (errors) {
                 setError("Transaction error.");
                 return;

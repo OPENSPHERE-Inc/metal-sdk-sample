@@ -11,6 +11,13 @@ const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signe
 const payload = Convert.utf8ToUint8("Test Data Here");
 // -----------------------
 
+assert(nodeUrl);
+const symbolService = new SymbolService({ node_url: nodeUrl });
+const metalService = new MetalService(symbolService);
+
+assert(privateKey);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+
 const destroyMetal = async (
     type: MetadataType,
     sourcePubAccount: PublicAccount,
@@ -21,7 +28,7 @@ const destroyMetal = async (
     signerAccount: Account,
     cosignerAccounts: Account[]
 ) => {
-    const txs = await MetalService.createDestroyTxs(
+    const txs = await metalService.createDestroyTxs(
         type,
         sourcePubAccount,
         targetPubAccount,
@@ -32,22 +39,17 @@ const destroyMetal = async (
     if (!txs) {
         throw Error("Transaction creation error.");
     }
-    const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
+    const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
         txs,
         signerAccount,
         cosignerAccounts,
     );
-    const errors = await SymbolService.executeBatches(batches, signerAccount);
+    const errors = await symbolService.executeBatches(batches, signerAccount);
     if (errors) {
         throw Error("Transaction error.");
     }
 };
 
-assert(privateKey);
-const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
-
-assert(nodeUrl);
-SymbolService.init({ node_url: nodeUrl });
 destroyMetal(
     MetadataType.Account,
     signerAccount.publicAccount,

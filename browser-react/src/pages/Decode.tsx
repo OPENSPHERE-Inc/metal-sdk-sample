@@ -8,7 +8,7 @@ import assert from "assert";
 
 
 assert(process.env.REACT_APP_NODE_URL);
-SymbolService.init({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
+const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
         websocketInjected: WebSocket,
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
@@ -38,7 +38,7 @@ const Decode = () => {
     const decode = useCallback(async (data: FormData) => {
         try {
             setPayload(undefined);
-            const metadataPool = await SymbolService.searchMetadata(
+            const metadataPool = await symbolService.searchMetadata(
                 data.type,
                 {
                     source: Address.createFromRawAddress(data.source_address),

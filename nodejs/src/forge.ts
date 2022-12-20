@@ -11,6 +11,13 @@ const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signe
 const payload = Convert.utf8ToUint8("Test Data Here");
 // -----------------------
 
+assert(nodeUrl);
+const symbolService = new SymbolService({ node_url: nodeUrl });
+const metalService = new MetalService(symbolService);
+
+assert(privateKey);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+
 const forgeMetal = async (
     type: MetadataType,
     sourcePubAccount: PublicAccount,
@@ -21,7 +28,7 @@ const forgeMetal = async (
     cosignerAccounts: Account[],
     additive?: Uint8Array,
 ) => {
-    const { key, txs, additive: newAdditive } = await MetalService.createForgeTxs(
+    const { key, txs, additive: newAdditive } = await metalService.createForgeTxs(
         type,
         sourcePubAccount,
         targetPubAccount,
@@ -29,12 +36,12 @@ const forgeMetal = async (
         payload,
         additive,
     );
-    const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
+    const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
         txs,
         signerAccount,
         cosignerAccounts,
     );
-    const errors = await SymbolService.executeBatches(batches, signerAccount);
+    const errors = await symbolService.executeBatches(batches, signerAccount);
     if (errors) {
         throw Error("Transaction error.");
     }
@@ -53,11 +60,6 @@ const forgeMetal = async (
     };
 };
 
-assert(privateKey);
-const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
-
-assert(nodeUrl);
-SymbolService.init({ node_url: nodeUrl });
 forgeMetal(
     MetadataType.Account,
     signerAccount.publicAccount,

@@ -7,11 +7,12 @@ import {Convert} from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
-SymbolService.init({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
+const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
         websocketInjected: WebSocket,
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
+const metalService = new MetalService(symbolService);
 
 interface FormData {
     metal_id: string;
@@ -35,8 +36,8 @@ const Verify = () => {
                 targetAddress,
                 targetId,
                 scopedMetadataKey: key,
-            } = (await MetalService.getFirstChunk(data.metal_id)).metadataEntry;
-            const { mismatches, maxLength } = await MetalService.verify(
+            } = (await metalService.getFirstChunk(data.metal_id)).metadataEntry;
+            const { mismatches, maxLength } = await metalService.verify(
                 Convert.utf8ToUint8(data.payload),
                 type,
                 sourceAddress,

@@ -21,6 +21,12 @@ const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signe
 const key =  UInt64.fromHex("Your Metadata Key here");
 // -----------------------
 
+assert(nodeUrl);
+const symbolService = new SymbolService({ node_url: nodeUrl });
+
+assert(privateKey);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+
 const decode = async (
     type: MetadataType,
     sourceAddress: Address,
@@ -28,7 +34,7 @@ const decode = async (
     targetId: undefined | MosaicId | NamespaceId,
     key: UInt64
 ) => {
-    const metadataPool = await SymbolService.searchMetadata(
+    const metadataPool = await symbolService.searchMetadata(
         type,
         {
             source: sourceAddress,
@@ -39,11 +45,6 @@ const decode = async (
     return Base64.toUint8Array(payloadBase64);
 };
 
-assert(privateKey);
-const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
-
-assert(nodeUrl);
-SymbolService.init({ node_url: nodeUrl });
 decode(
     MetadataType.Account,
     signerAccount.address,

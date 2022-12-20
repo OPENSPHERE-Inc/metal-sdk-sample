@@ -7,11 +7,12 @@ import {Link} from "react-router-dom";
 
 
 assert(process.env.REACT_APP_NODE_URL);
-SymbolService.init({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
+const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
         websocketInjected: WebSocket,
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
+const metalService = new MetalService(symbolService);
 
 interface FormData {
     private_key: string;
@@ -36,13 +37,13 @@ const ScrapByPayload = () => {
         try {
             setError(undefined);
             setSucceeded(undefined);
-            const { networkType } = await SymbolService.getNetwork();
+            const { networkType } = await symbolService.getNetwork();
             const signerAccount = Account.createFromPrivateKey(data.private_key, networkType);
             const targetId = data.target_id
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
-            const txs = await MetalService.createDestroyTxs(
+            const txs = await metalService.createDestroyTxs(
                 data.type,
                 signerAccount.publicAccount,
                 signerAccount.publicAccount,
@@ -54,12 +55,12 @@ const ScrapByPayload = () => {
                 setError("Transaction creation error.");
                 return;
             }
-            const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
+            const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
                 txs,
                 signerAccount,
                 [],
             );
-            const errors = await SymbolService.executeBatches(batches, signerAccount);
+            const errors = await symbolService.executeBatches(batches, signerAccount);
             if (errors) {
                 setError("Transaction error.");
                 return;

@@ -11,6 +11,13 @@ const privateKey = process.env.TEST_PRIVATE_KEY;  // The account will be signer/
 const metalId = "Your Metal ID here";
 // -----------------------
 
+assert(nodeUrl);
+const symbolService = new SymbolService({ node_url: nodeUrl });
+const metalService = new MetalService(symbolService);
+
+assert(privateKey);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+
 const scrapMetal = async (
     metalId: string,
     sourcePubAccount: PublicAccount,
@@ -18,8 +25,8 @@ const scrapMetal = async (
     signerAccount: Account,
     cosignerAccounts: Account[]
 ) => {
-    const metadataEntry = (await MetalService.getFirstChunk(metalId)).metadataEntry;
-    const txs = await MetalService.createScrapTxs(
+    const metadataEntry = (await metalService.getFirstChunk(metalId)).metadataEntry;
+    const txs = await metalService.createScrapTxs(
         metadataEntry.metadataType,
         sourcePubAccount,
         targetPubAccount,
@@ -29,22 +36,17 @@ const scrapMetal = async (
     if (!txs) {
         throw Error("Transaction creation error.");
     }
-    const batches = await SymbolService.buildSignedAggregateCompleteTxBatches(
+    const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
         txs,
         signerAccount,
         cosignerAccounts,
     );
-    const errors = await SymbolService.executeBatches(batches, signerAccount);
+    const errors = await symbolService.executeBatches(batches, signerAccount);
     if (errors) {
         throw Error("Transaction error.");
     }
 };
 
-assert(privateKey);
-const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
-
-assert(nodeUrl);
-SymbolService.init({ node_url: nodeUrl });
 scrapMetal(
     metalId,
     signerAccount.publicAccount,

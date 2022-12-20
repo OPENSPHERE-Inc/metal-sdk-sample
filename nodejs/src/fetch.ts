@@ -10,12 +10,14 @@ const nodeUrl = process.env.TEST_NODE_URL;
 const metalId = "Your Metal ID here";
 // -----------------------
 
+assert(nodeUrl);
+const symbolService = new SymbolService({ node_url: nodeUrl });
+const metalService = new MetalService(symbolService);
+
 const fetchMetal = async (metalId: string) => {
-    return MetalService.fetchByMetalId(metalId);
+    return metalService.fetchByMetalId(metalId);
 };
 
-assert(nodeUrl);
-SymbolService.init({ node_url: nodeUrl });
 fetchMetal(
     metalId,
 ).then((result) => {

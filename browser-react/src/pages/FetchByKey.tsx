@@ -7,11 +7,12 @@ import {Link} from "react-router-dom";
 
 
 assert(process.env.REACT_APP_NODE_URL);
-SymbolService.init({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
+const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
         websocketInjected: WebSocket,
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
+const metalService = new MetalService(symbolService);
 
 interface FormData {
     key: string;
@@ -44,7 +45,7 @@ const FetchByKey = () => {
             const targetId = data.target_id
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
-            const payload = await MetalService.fetch(
+            const payload = await metalService.fetch(
                 data.type,
                 Address.createFromRawAddress(data.source_address),
                 Address.createFromRawAddress(data.target_address),

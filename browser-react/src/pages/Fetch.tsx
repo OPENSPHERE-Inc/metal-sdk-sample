@@ -7,11 +7,12 @@ import assert from "assert";
 
 
 assert(process.env.REACT_APP_NODE_URL);
-SymbolService.init({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
+const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_URL, repo_factory_config: {
         websocketInjected: WebSocket,
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
+const metalService = new MetalService(symbolService);
 
 interface FormData {
     metal_id: string;
@@ -39,7 +40,7 @@ const Fetch = () => {
     const fetch = useCallback(async (data: FormData) => {
         try {
             setMetal(undefined);
-            const result = await MetalService.fetchByMetalId(data.metal_id);
+            const result = await metalService.fetchByMetalId(data.metal_id);
             setMetal(result);
         } catch (e) {
             console.error(e);

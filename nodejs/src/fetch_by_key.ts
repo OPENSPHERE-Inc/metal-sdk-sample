@@ -11,6 +11,13 @@ const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signe
 const key =  UInt64.fromHex("Your Metadata Key here");
 // -----------------------
 
+assert(nodeUrl);
+const symbolService = new SymbolService({ node_url: nodeUrl });
+const metalService = new MetalService(symbolService);
+
+assert(privateKey);
+const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
+
 const fetchMetal = async (
     type: MetadataType,
     sourceAddress: Address,
@@ -18,16 +25,11 @@ const fetchMetal = async (
     targetId: undefined | MosaicId | NamespaceId,
     key: UInt64
 ) => {
-    const payload = await MetalService.fetch(type, sourceAddress, targetAddress, targetId, key);
+    const payload = await metalService.fetch(type, sourceAddress, targetAddress, targetId, key);
     const metalId = MetalService.calculateMetalId(type, sourceAddress, targetAddress, targetId, key);
     return { payload, metalId };
 };
 
-assert(privateKey);
-const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
-
-assert(nodeUrl);
-SymbolService.init({ node_url: nodeUrl });
 fetchMetal(
     MetadataType.Account,
     signerAccount.address,
