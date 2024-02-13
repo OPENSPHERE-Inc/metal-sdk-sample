@@ -1,9 +1,9 @@
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Account, Convert, MetadataType, MosaicId} from "symbol-sdk";
-import {useCallback, useState} from "react";
-import {useForm} from "react-hook-form";
-import {Link} from "react-router-dom";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { useCallback, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import { Account, Convert, MetadataType, MosaicId } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -12,14 +12,14 @@ const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_U
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 interface FormData {
     private_key: string;
     type: MetadataType;
     target_id?: string;
     payload: string;
-    additive: string;
+    additive: number;
 }
 
 const ScrapByPayload = () => {
@@ -29,7 +29,7 @@ const ScrapByPayload = () => {
         mode: "onBlur",
         defaultValues: {
             type: MetadataType.Account,
-            additive: "0000",
+            additive: 0,
         },
     });
 
@@ -49,7 +49,7 @@ const ScrapByPayload = () => {
                 signerAccount.publicAccount,
                 targetId,
                 Convert.utf8ToUint8(data.payload),
-                Convert.utf8ToUint8(data.additive),
+                data.additive,
             );
             if (!txs) {
                 setError("Transaction creation error.");
@@ -73,7 +73,7 @@ const ScrapByPayload = () => {
         }
     }, []);
 
-    return <div className="content">
+    return (<div className="content">
         <h1 className="title is-3">Scrap Metal by payload sample</h1>
 
         <form onSubmit={handleSubmit(scrapByPayload)}>
@@ -119,14 +119,16 @@ const ScrapByPayload = () => {
             </div> }
 
             <div className="field">
-                <label className="label">Additive (Default:0000)</label>
+                <label className="label">Additive (Default:0)</label>
                 <div className="control">
-                    <input className={`input ${errors.additive ? "is-danger" : ""}`} type="text" {
-                        ...register("additive", {
-                            pattern: {
-                                value: /^[\x21-\x7e\s]{4}$/,
-                                message: "Additive must be 4 ascii characters"
-                            }
+                    <input
+                        className={`input ${errors.additive ? "is-danger" : ""}`}
+                        type="number"
+                        min={0}
+                        max={65535}
+                        step={1}
+                        { ...register("additive", {
+                            valueAsNumber: true,
                         }) }
                     />
                 </div>
@@ -171,7 +173,7 @@ const ScrapByPayload = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default ScrapByPayload;

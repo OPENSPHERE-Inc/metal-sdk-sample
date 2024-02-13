@@ -1,19 +1,7 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import "./env";
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {
-    Account,
-    Address,
-    Convert,
-    MetadataType,
-    MosaicId,
-    NamespaceId,
-    NetworkType,
-    UInt64
-} from "symbol-sdk";
-import {Base64} from "js-base64";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { Account, Address, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, UInt64 } from "symbol-sdk";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
@@ -34,15 +22,14 @@ const decode = async (
     targetId: undefined | MosaicId | NamespaceId,
     key: UInt64
 ) => {
-    const metadataPool = await symbolService.searchMetadata(
+    const metadataPool = await symbolService.searchBinMetadata(
         type,
         {
             source: sourceAddress,
             target: targetAddress,
             targetId
         });
-    const payloadBase64 = MetalService.decode(key, metadataPool);
-    return Base64.toUint8Array(payloadBase64);
+    return MetalServiceV2.decode(key, metadataPool);
 };
 
 decode(

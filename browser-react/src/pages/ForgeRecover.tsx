@@ -1,9 +1,9 @@
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Account, Convert, MetadataType, MosaicId} from "symbol-sdk";
-import {useCallback, useState} from "react";
-import {useForm} from "react-hook-form";
-import {Link} from "react-router-dom";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { useCallback, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import { Account, Convert, MetadataType, MosaicId } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -12,13 +12,13 @@ const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_U
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 interface FormData {
     type: MetadataType;
     private_key: string;
     target_id?: string;
-    additive?: string;
+    additive?: number;
     payload: string;
 }
 
@@ -26,13 +26,13 @@ const ForgeRecover = () => {
     const [ partial, setPartial ] = useState<boolean>();
     const [ metalId, setMetalId ] = useState<string>();
     const [ key, setKey ] = useState<string>();
-    const [ additive, setAdditive ] = useState<string>();
+    const [ additive, setAdditive ] = useState<number>();
     const [ error, setError ] = useState<string>();
     const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             type: MetadataType.Account,
-            additive: "0000",
+            additive: 0,
         },
     });
 
@@ -54,7 +54,7 @@ const ForgeRecover = () => {
                 signerAccount.publicAccount,
                 targetId,
                 Convert.utf8ToUint8(data.payload),
-                data.additive ? Convert.utf8ToUint8(data.additive) : undefined,
+                data.additive,
             );
             const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
                 txs.slice(0, 1),
@@ -85,7 +85,7 @@ const ForgeRecover = () => {
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
-            const metadataPool = await symbolService.searchMetadata(
+            const metadataPool = await symbolService.searchBinMetadata(
                 data.type,
                 {
                     source: signer.publicAccount,
@@ -98,7 +98,7 @@ const ForgeRecover = () => {
                 signer.publicAccount,
                 targetId,
                 Convert.utf8ToUint8(data.payload),
-                data.additive ? Convert.utf8ToUint8(data.additive) : undefined,
+                data.additive,
                 metadataPool,
             );
             const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
@@ -111,7 +111,7 @@ const ForgeRecover = () => {
                 setError("Transaction error.");
                 return;
             }
-            const metalId = MetalService.calculateMetalId(
+            const metalId = MetalServiceV2.calculateMetalId(
                 data.type,
                 signer.address,
                 signer.address,
@@ -120,7 +120,7 @@ const ForgeRecover = () => {
             );
 
             setMetalId(metalId);
-            setAdditive(Convert.uint8ToUtf8(additive));
+            setAdditive(additive);
             setKey(key.toHex());
             setPartial(false);
         } catch (e) {
@@ -129,7 +129,7 @@ const ForgeRecover = () => {
         }
     }, []);
 
-    return <div className="content">
+    return (<div className="content">
         <h1 className="title is-3">Recovery Forge Metal sample</h1>
 
         <form>
@@ -175,14 +175,15 @@ const ForgeRecover = () => {
             </div> }
 
             <div className="field">
-                <label className="label">Additive (Default:0000)</label>
+                <label className="label">Additive (Default:0)</label>
                 <div className="control">
-                    <input className={`input ${errors.additive ? "is-danger" : ""}`} type="text" {
-                        ...register("additive", {
-                            pattern: {
-                                value: /^[\x21-\x7e\s]{4}$/,
-                                message: "Additive must be 4 ascii characters"
-                            }
+                    <input
+                        className={`input ${errors.additive ? "is-danger" : ""}`}
+                        type="number"
+                        min={0}
+                        max={65535}
+                        { ...register("additive", {
+                            valueAsNumber: true,
                         }) }
                     />
                 </div>
@@ -255,7 +256,7 @@ const ForgeRecover = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default ForgeRecover;

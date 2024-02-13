@@ -14,8 +14,8 @@
     "dotenv": "^16.0.3",
     "js-base64": "^3.7.3",
     "js-sha3": "https://github.com/Propine/js-sha3.git",
-    "metal-on-symbol": "^0.2.2",
-    "symbol-sdk": "^2.0.3"
+    "metal-on-symbol": "^0.3.1-rc.1",
+    "symbol-sdk": "^2.0.4"
   },
   "scripts": {
     "clean": "rimraf dist",

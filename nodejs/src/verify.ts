@@ -1,8 +1,6 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import "./env";
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
+import {MetalServiceV2, SymbolService} from "metal-on-symbol";
 import {Convert} from "symbol-sdk";
 
 // Edit here -------------
@@ -13,7 +11,7 @@ const payload = Convert.utf8ToUint8("Test Data Here");
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 const verifyMetal = async (
     metalId: string,

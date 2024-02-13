@@ -1,9 +1,9 @@
-import {useCallback, useState} from "react";
-import {useForm} from "react-hook-form";
-import {Address, Convert, MetadataType, MosaicId, NamespaceId, UInt64} from "symbol-sdk";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Link} from "react-router-dom";
 import assert from "assert";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { useCallback, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import { Address, Convert, MetadataType, MosaicId, NamespaceId, UInt64 } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -12,7 +12,7 @@ const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_U
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 interface FormData {
     metal_id: string;
@@ -48,7 +48,7 @@ const Fetch = () => {
         }
     }, []);
 
-    return <div className="content">
+    return (<div className="content">
         <h1 className="title is-3">Fetch Metal by Metal ID sample</h1>
 
         <form onSubmit={handleSubmit(fetch)}>
@@ -81,7 +81,7 @@ const Fetch = () => {
                 <div className="field">
                     <label className="label">Fetched Metal Payload</label>
                     <div className="control">
-                        <textarea className="textarea" value={Convert.uint8ToUtf8(metal.payload)} readOnly={true} />
+                        <textarea className="textarea" value={Convert.uint8ToHex(metal.payload)} readOnly={true} />
                     </div>
                 </div>
                 <div className="field">
@@ -120,7 +120,7 @@ const Fetch = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default Fetch;

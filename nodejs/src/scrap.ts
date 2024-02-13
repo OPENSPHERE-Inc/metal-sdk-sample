@@ -1,8 +1,6 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import "./env";
 import {Account, NetworkType, PublicAccount} from "symbol-sdk";
-import {MetalService, SymbolService} from "metal-on-symbol";
+import {MetalServiceV2, SymbolService} from "metal-on-symbol";
 import assert from "assert";
 
 // Edit here -------------
@@ -13,7 +11,7 @@ const metalId = "Your Metal ID here";
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 assert(privateKey);
 const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);

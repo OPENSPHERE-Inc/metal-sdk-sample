@@ -1,8 +1,6 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import "./env"
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
+import {MetalServiceV2, SymbolService} from "metal-on-symbol";
 import {Account, Address, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, UInt64} from "symbol-sdk";
 
 // Edit here -------------
@@ -13,7 +11,7 @@ const key =  UInt64.fromHex("Your Metadata Key here");
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 assert(privateKey);
 const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
@@ -26,7 +24,7 @@ const fetchMetal = async (
     key: UInt64
 ) => {
     const payload = await metalService.fetch(type, sourceAddress, targetAddress, targetId, key);
-    const metalId = MetalService.calculateMetalId(type, sourceAddress, targetAddress, targetId, key);
+    const metalId = MetalServiceV2.calculateMetalId(type, sourceAddress, targetAddress, targetId, key);
     return { payload, metalId };
 };
 

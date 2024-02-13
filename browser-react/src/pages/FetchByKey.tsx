@@ -1,9 +1,9 @@
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Address, Convert, MetadataType, MosaicId, UInt64} from "symbol-sdk";
-import {useCallback, useState} from "react";
-import {useForm} from "react-hook-form";
-import {Link} from "react-router-dom";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { useCallback, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import { Address, Convert, MetadataType, MosaicId, UInt64 } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -12,7 +12,7 @@ const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_U
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 interface FormData {
     key: string;
@@ -56,7 +56,7 @@ const FetchByKey = () => {
                 setError("Couldn't fetch.");
                 return;
             }
-            const metalId = MetalService.calculateMetalId(
+            const metalId = MetalServiceV2.calculateMetalId(
                 data.type,
                 Address.createFromRawAddress(data.source_address),
                 Address.createFromRawAddress(data.target_address),
@@ -64,7 +64,7 @@ const FetchByKey = () => {
                 UInt64.fromHex(data.key),
             );
 
-            setPayload(Convert.uint8ToUtf8(payload));
+            setPayload(Convert.uint8ToHex(payload));
             setMetalId(metalId);
         } catch (e) {
             console.error(e);
@@ -72,7 +72,7 @@ const FetchByKey = () => {
         }
     }, []);
 
-    return <div className="content">
+    return (<div className="content">
         <h1 className="title is-3">Fetch Metal by Metadata Key sample</h1>
 
         <form onSubmit={handleSubmit(fetchByKey)}>
@@ -176,7 +176,7 @@ const FetchByKey = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default FetchByKey;

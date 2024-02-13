@@ -1,9 +1,9 @@
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Account, Convert, MetadataType, MosaicId} from "symbol-sdk";
-import {useCallback, useState} from "react";
-import {useForm} from "react-hook-form";
-import {Link} from "react-router-dom";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { useCallback, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import { Account, Convert, MetadataType, MosaicId } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -12,26 +12,26 @@ const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_U
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 interface FormData {
     type: MetadataType;
     private_key: string;
     target_id?: string;
-    additive?: string;
+    additive?: number;
     payload: string;
 }
 
 const Forge = () => {
     const [ metalId, setMetalId ] = useState<string>();
     const [ key, setKey ] = useState<string>();
-    const [ additive, setAdditive ] = useState<string>();
+    const [ additive, setAdditive ] = useState<number>();
     const [ error, setError ] = useState<string>();
     const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             type: MetadataType.Account,
-            additive: "0000",
+            additive: 0,
         },
     });
 
@@ -51,7 +51,7 @@ const Forge = () => {
                 signerAccount.publicAccount,
                 targetId,
                 Convert.utf8ToUint8(data.payload),
-                data.additive ? Convert.utf8ToUint8(data.additive) : undefined,
+                data.additive,
             );
             const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
                 txs,
@@ -63,7 +63,7 @@ const Forge = () => {
                 setError("Transaction error.");
                 return;
             }
-            const metalId = MetalService.calculateMetalId(
+            const metalId = MetalServiceV2.calculateMetalId(
                 data.type,
                 signerAccount.address,
                 signerAccount.address,
@@ -72,7 +72,7 @@ const Forge = () => {
             );
 
             setMetalId(metalId);
-            setAdditive(Convert.uint8ToUtf8(additive));
+            setAdditive(additive);
             setKey(key.toHex());
         } catch (e) {
             console.error(e);
@@ -80,7 +80,7 @@ const Forge = () => {
         }
     }, []);
 
-    return <div className="content">
+    return (<div className="content">
         <h1 className="title is-3">Forge Metal sample</h1>
 
         <form onSubmit={handleSubmit(forge)}>
@@ -126,14 +126,16 @@ const Forge = () => {
             </div> }
 
             <div className="field">
-                <label className="label">Additive (Default:0000)</label>
+                <label className="label">Additive (Default:0)</label>
                 <div className="control">
-                    <input className={`input ${errors.additive ? "is-danger" : ""}`} type="text" {
-                        ...register("additive", {
-                            pattern: {
-                                value: /^[\x21-\x7e\s]{4}$/,
-                                message: "Additive must be 4 ascii characters"
-                            }
+                    <input
+                        className={`input ${errors.additive ? "is-danger" : ""}`}
+                        type="number"
+                        min={0}
+                        max={65535}
+                        step={1}
+                        { ...register("additive", {
+                            valueAsNumber: true,
                         }) }
                     />
                 </div>
@@ -195,7 +197,7 @@ const Forge = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default Forge;

@@ -1,8 +1,6 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import "./env";
 import {Account, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount} from "symbol-sdk";
-import {MetalService, SymbolService} from "metal-on-symbol";
+import {MetalServiceV2, SymbolService} from "metal-on-symbol";
 import assert from "assert";
 
 // Edit here -------------
@@ -13,7 +11,7 @@ const payload = Convert.utf8ToUint8("Test Data Here");
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 assert(privateKey);
 const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
@@ -26,9 +24,9 @@ const forgeMetal = async (
     payload: Uint8Array,
     signerAccount: Account,
     cosignerAccounts: Account[],
-    additive?: Uint8Array,
+    additive?: number,
 ) => {
-    const metadataPool = await symbolService.searchMetadata(
+    const metadataPool = await symbolService.searchBinMetadata(
         type,
         {
             source: sourcePubAccount,
@@ -53,7 +51,7 @@ const forgeMetal = async (
     if (errors) {
         throw Error("Transaction error.");
     }
-    const metalId = MetalService.calculateMetalId(
+    const metalId = MetalServiceV2.calculateMetalId(
         type,
         sourcePubAccount.address,
         targetPubAccount.address,
@@ -77,7 +75,7 @@ forgeMetal(
     signerAccount,
     []
 ).then(({ metalId, key, additive }) => {
-    console.log(`Forged! metalId=${metalId},key=${key.toHex()},additive=${Convert.uint8ToUtf8(additive)}`);
+    console.log(`Forged! metalId=${metalId},key=${key.toHex()},additive=${additive}`);
 }).catch((e) => {
     console.error(e);
     process.exit(1);

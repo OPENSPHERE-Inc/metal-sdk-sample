@@ -1,7 +1,5 @@
-import dotenv from "dotenv";
-dotenv.config();
-
-import {MetalService, SymbolService} from "metal-on-symbol";
+import "./env";
+import {MetalServiceV2, SymbolService} from "metal-on-symbol";
 import {Account, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount} from "symbol-sdk";
 import assert from "assert";
 
@@ -13,7 +11,7 @@ const payload = Convert.utf8ToUint8("Test Data Here");
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 assert(privateKey);
 const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
@@ -24,7 +22,7 @@ const destroyMetal = async (
     targetPubAccount: PublicAccount,
     targetId: undefined | MosaicId | NamespaceId,
     payload: Uint8Array,
-    additive: Uint8Array,
+    additive: number,
     signerAccount: Account,
     cosignerAccounts: Account[]
 ) => {
@@ -56,7 +54,7 @@ destroyMetal(
     signerAccount.publicAccount,
     undefined,
     payload,
-    Convert.utf8ToUint8("0000"),
+    0,
     signerAccount,
     []
 ).then(() => {

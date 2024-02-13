@@ -1,10 +1,9 @@
-import {useForm} from "react-hook-form";
-import {useCallback, useState} from "react";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Address, MetadataType, MosaicId, UInt64} from "symbol-sdk";
-import {Base64} from "js-base64";
-import {Link} from "react-router-dom";
 import assert from "assert";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { useCallback, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import { Address, Convert, MetadataType, MosaicId, UInt64 } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -38,7 +37,7 @@ const Decode = () => {
     const decode = useCallback(async (data: FormData) => {
         try {
             setPayload(undefined);
-            const metadataPool = await symbolService.searchMetadata(
+            const metadataPool = await symbolService.searchBinMetadata(
                 data.type,
                 {
                     source: Address.createFromRawAddress(data.source_address),
@@ -54,19 +53,19 @@ const Decode = () => {
                             : {}
                     ),
                 });
-            const payloadBase64 = MetalService.decode(UInt64.fromHex(data.key), metadataPool);
-            if(!payloadBase64.length) {
+            const payloadBytes = MetalServiceV2.decode(UInt64.fromHex(data.key), metadataPool);
+            if(!payloadBytes.length) {
                 setError("Couldn't decode.");
                 return;
             }
-            setPayload(Base64.decode(payloadBase64));
+            setPayload(Convert.uint8ToHex(payloadBytes));
         } catch (e) {
             console.error(e);
             setError(String(e));
         }
     }, []);
 
-    return <div className="content">
+    return (<div className="content">
         <h1 className="title is-3">Decode Metal payload sample</h1>
 
         <form onSubmit={handleSubmit(decode)}>
@@ -164,7 +163,7 @@ const Decode = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default Decode;
