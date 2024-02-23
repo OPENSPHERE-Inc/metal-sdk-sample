@@ -19,6 +19,7 @@ interface FormData {
     private_key: string;
     target_id?: string;
     additive?: number;
+    text?: string;
     payload: string;
 }
 
@@ -52,6 +53,7 @@ const Forge = () => {
                 targetId,
                 Convert.utf8ToUint8(data.payload),
                 data.additive,
+                data.text,
             );
             const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
                 txs,
@@ -147,6 +149,22 @@ const Forge = () => {
             </div> }
 
             <div className="field">
+                <label className="label">Text Section</label>
+                <div className="control">
+                    <input
+                        className={`input ${errors.text ? "is-danger" : ""}`}
+                        type="text"
+                        { ...register("text") }
+                    />
+                </div>
+            </div>
+            { errors.text && <div className="field">
+                <p className="help is-danger">
+                    { errors.text.message }
+                </p>
+            </div> }
+
+            <div className="field">
                 <label className="label">Payload</label>
                 <div className="control">
                     <textarea className={`textarea ${errors.payload ? "is-danger" : ""}`}
@@ -176,19 +194,19 @@ const Forge = () => {
                 <div className="field">
                     <label className="label">Forged Metal ID</label>
                     <div className="control">
-                        <input type="text" className="input" value={metalId} readOnly={true} />
+                        <input type="text" className="input" value={ metalId } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Header chunk Metadata Key</label>
                     <div className="control">
-                        <input type="text" className="input" value={key} readOnly={true} />
+                        <input type="text" className="input" value={ key } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Additive</label>
                     <div className="control">
-                        <input type="text" className="input" value={additive} readOnly={true} />
+                        <input type="text" className="input" value={ additive } readOnly={ true }/>
                     </div>
                 </div>
             </div> : null }

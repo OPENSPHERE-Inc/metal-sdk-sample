@@ -20,6 +20,7 @@ interface FormData {
     target_id?: string;
     payload: string;
     additive: number;
+    text?: string;
 }
 
 const ScrapByPayload = () => {
@@ -50,6 +51,7 @@ const ScrapByPayload = () => {
                 targetId,
                 Convert.utf8ToUint8(data.payload),
                 data.additive,
+                data.text,
             );
             if (!txs) {
                 setError("Transaction creation error.");
@@ -136,6 +138,22 @@ const ScrapByPayload = () => {
             { errors.additive && <div className="field">
                 <p className="help is-danger">
                     { errors.additive.message }
+                </p>
+            </div> }
+
+            <div className="field">
+                <label className="label">Text Section</label>
+                <div className="control">
+                    <input
+                        className={`input ${errors.text ? "is-danger" : ""}`}
+                        type="text"
+                        { ...register("text") }
+                    />
+                </div>
+            </div>
+            { errors.text && <div className="field">
+                <p className="help is-danger">
+                    { errors.text.message }
                 </p>
             </div> }
 

@@ -20,6 +20,7 @@ interface FormData {
 
 interface Metal {
     payload: Uint8Array;
+    text: string | undefined;
     type: MetadataType;
     sourceAddress: Address;
     targetAddress: Address
@@ -81,37 +82,44 @@ const Fetch = () => {
                 <div className="field">
                     <label className="label">Fetched Metal Payload</label>
                     <div className="control">
-                        <textarea className="textarea" value={Convert.uint8ToHex(metal.payload)} readOnly={true} />
+                        <textarea className="textarea" value={ Convert.uint8ToHex(metal.payload) } readOnly={ true }/>
+                    </div>
+                </div>
+                <div className="field">
+                    <label className="label">Fetched Metal Text Section</label>
+                    <div className="control">
+                        <textarea className="textarea" value={ Convert.uint8ToHex(metal.text) } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Metadata Type</label>
                     <div className="control">
-                        <input type="text" className="input" value={[ "Account", "Mosaic", "Namespace"][metal.type]} readOnly={true} />
+                        <input type="text" className="input" value={ [ "Account", "Mosaic", "Namespace" ][metal.type] }
+                               readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Source Address</label>
                     <div className="control">
-                        <input type="text" className="input" value={metal.sourceAddress.plain()} readOnly={true} />
+                        <input type="text" className="input" value={ metal.sourceAddress.plain() } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Target Address</label>
                     <div className="control">
-                        <input type="text" className="input" value={metal.targetAddress.plain()} readOnly={true} />
+                        <input type="text" className="input" value={ metal.targetAddress.plain() } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Target ID</label>
                     <div className="control">
-                        <input type="text" className="input" value={metal.targetId?.toHex() || ""} readOnly={true} />
+                        <input type="text" className="input" value={ metal.targetId?.toHex() || "" } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Metadata Key</label>
                     <div className="control">
-                        <input type="text" className="input" value={metal.key.toHex()} readOnly={true} />
+                        <input type="text" className="input" value={ metal.key.toHex() } readOnly={ true }/>
                     </div>
                 </div>
             </div> : null }

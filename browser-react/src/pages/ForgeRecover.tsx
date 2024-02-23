@@ -19,6 +19,7 @@ interface FormData {
     private_key: string;
     target_id?: string;
     additive?: number;
+    text?: string;
     payload: string;
 }
 
@@ -55,6 +56,7 @@ const ForgeRecover = () => {
                 targetId,
                 Convert.utf8ToUint8(data.payload),
                 data.additive,
+                data.text,
             );
             const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
                 txs.slice(0, 1),
@@ -99,6 +101,7 @@ const ForgeRecover = () => {
                 targetId,
                 Convert.utf8ToUint8(data.payload),
                 data.additive,
+                data.text,
                 metadataPool,
             );
             const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
@@ -191,6 +194,22 @@ const ForgeRecover = () => {
             { errors.additive && <div className="field">
                 <p className="help is-danger">
                     { errors.additive.message }
+                </p>
+            </div> }
+
+            <div className="field">
+                <label className="label">Text Section</label>
+                <div className="control">
+                    <input
+                        className={`input ${errors.text ? "is-danger" : ""}`}
+                        type="text"
+                        { ...register("text") }
+                    />
+                </div>
+            </div>
+            { errors.text && <div className="field">
+                <p className="help is-danger">
+                    { errors.text.message }
                 </p>
             </div> }
 

@@ -23,6 +23,7 @@ interface FormData {
 
 const Decode = () => {
     const [ payload, setPayload ] = useState<string>();
+    const [ text, setText ] = useState<string>();
     const [ error, setError ] = useState<string>();
     const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
         mode: "onBlur",
@@ -53,12 +54,13 @@ const Decode = () => {
                             : {}
                     ),
                 });
-            const payloadBytes = MetalServiceV2.decode(UInt64.fromHex(data.key), metadataPool);
-            if(!payloadBytes.length) {
+            const { payload, text } = MetalServiceV2.decode(UInt64.fromHex(data.key), metadataPool);
+            if(!payload.length) {
                 setError("Couldn't decode.");
                 return;
             }
-            setPayload(Convert.uint8ToHex(payloadBytes));
+            setPayload(Convert.uint8ToHex(payload));
+            setText(text);
         } catch (e) {
             console.error(e);
             setError(String(e));
@@ -155,6 +157,15 @@ const Decode = () => {
                     <label className="label">Decoded Payload</label>
                     <div className="control">
                         <textarea className="textarea" value={payload} readOnly={true} />
+                    </div>
+                </div>
+            </div> : null }
+
+            { text ? <div className="notification is-success is-light">
+                <div className="field">
+                    <label className="label">Decoded Text Section</label>
+                    <div className="control">
+                        <textarea className="textarea" value={text} readOnly={true} />
                     </div>
                 </div>
             </div> : null }

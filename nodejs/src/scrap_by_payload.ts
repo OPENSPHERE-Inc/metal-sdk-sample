@@ -7,6 +7,7 @@ import assert from "assert";
 const nodeUrl = process.env.TEST_NODE_URL;
 const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signer/source/target
 const payload = Convert.utf8ToUint8("Test Data Here");
+const text = "Text Section Here";
 // -----------------------
 
 assert(nodeUrl);
@@ -23,6 +24,7 @@ const destroyMetal = async (
     targetId: undefined | MosaicId | NamespaceId,
     payload: Uint8Array,
     additive: number,
+    text: string,
     signerAccount: Account,
     cosignerAccounts: Account[]
 ) => {
@@ -33,6 +35,7 @@ const destroyMetal = async (
         targetId,
         payload,
         additive,
+        text,
     );
     if (!txs) {
         throw Error("Transaction creation error.");
@@ -55,6 +58,7 @@ destroyMetal(
     undefined,
     payload,
     0,
+    text,
     signerAccount,
     []
 ).then(() => {

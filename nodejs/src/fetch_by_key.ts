@@ -23,9 +23,9 @@ const fetchMetal = async (
     targetId: undefined | MosaicId | NamespaceId,
     key: UInt64
 ) => {
-    const payload = await metalService.fetch(type, sourceAddress, targetAddress, targetId, key);
+    const { payload, text } = await metalService.fetch(type, sourceAddress, targetAddress, targetId, key);
     const metalId = MetalServiceV2.calculateMetalId(type, sourceAddress, targetAddress, targetId, key);
-    return { payload, metalId };
+    return { payload, text, metalId };
 };
 
 fetchMetal(
@@ -34,9 +34,10 @@ fetchMetal(
     signerAccount.address,
     undefined,
     key,
-).then(({ payload, metalId }) => {
+).then(({ payload, text, metalId }) => {
     console.log(`Fetched! metalId=${metalId}`);
     console.log(Convert.uint8ToUtf8(payload));
+    console.log(text);
 }).catch((e) => {
     console.error(e);
     process.exit(1);

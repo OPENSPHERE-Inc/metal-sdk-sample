@@ -24,6 +24,7 @@ fetchMetal(
         `targetAddr=${result.targetAddress.plain()},targetId=${result.targetId?.toHex()},key=${result.key.toHex()}`
     );
     console.log(Convert.uint8ToUtf8(result.payload));
+    console.log(result.text);
 }).catch((e) => {
     console.error(e);
     process.exit(1);

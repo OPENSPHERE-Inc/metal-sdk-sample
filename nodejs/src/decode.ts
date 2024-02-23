@@ -38,9 +38,10 @@ decode(
     signerAccount.address,
     undefined,
     key,
-).then((payload) => {
+).then(({ payload, text }) => {
     console.log(`Decoded!`);
     console.log(Convert.uint8ToUtf8(payload));
+    console.log(text);
 }).catch((e) => {
     console.error(e);
     process.exit(1);

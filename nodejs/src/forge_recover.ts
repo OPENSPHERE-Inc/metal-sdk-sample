@@ -7,6 +7,7 @@ import assert from "assert";
 const nodeUrl = process.env.TEST_NODE_URL;
 const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signer/source/target
 const payload = Convert.utf8ToUint8("Test Data Here");
+const text = "Text Section Here";
 // -----------------------
 
 assert(nodeUrl);
@@ -25,6 +26,7 @@ const forgeMetal = async (
     signerAccount: Account,
     cosignerAccounts: Account[],
     additive?: number,
+    text?: string,
 ) => {
     const metadataPool = await symbolService.searchBinMetadata(
         type,
@@ -40,6 +42,7 @@ const forgeMetal = async (
         targetId,
         payload,
         additive,
+        text,
         metadataPool,
     );
     const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
@@ -73,7 +76,9 @@ forgeMetal(
     undefined,
     payload,
     signerAccount,
-    []
+    [],
+    undefined,
+    text,
 ).then(({ metalId, key, additive }) => {
     console.log(`Forged! metalId=${metalId},key=${key.toHex()},additive=${additive}`);
 }).catch((e) => {

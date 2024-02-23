@@ -14,7 +14,7 @@
     "dotenv": "^16.0.3",
     "js-base64": "^3.7.3",
     "js-sha3": "https://github.com/Propine/js-sha3.git",
-    "metal-on-symbol": "^0.3.1-rc.1",
+    "metal-on-symbol": "^0.3.1-rc.8",
     "symbol-sdk": "^2.0.4"
   },
   "scripts": {

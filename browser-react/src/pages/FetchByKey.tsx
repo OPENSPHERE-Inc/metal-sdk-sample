@@ -24,6 +24,7 @@ interface FormData {
 
 const FetchByKey = () => {
     const [ payload, setPayload ] = useState<string>();
+    const [ text, setText ] = useState<string>();
     const [ metalId, setMetalId ] = useState<string>();
     const [ error, setError ] = useState<string>();
     const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
@@ -45,7 +46,7 @@ const FetchByKey = () => {
             const targetId = data.target_id
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
-            const payload = await metalService.fetch(
+            const { payload, text } = await metalService.fetch(
                 data.type,
                 Address.createFromRawAddress(data.source_address),
                 Address.createFromRawAddress(data.target_address),
@@ -65,6 +66,7 @@ const FetchByKey = () => {
             );
 
             setPayload(Convert.uint8ToHex(payload));
+            setText(text);
             setMetalId(metalId);
         } catch (e) {
             console.error(e);
@@ -161,13 +163,19 @@ const FetchByKey = () => {
                 <div className="field">
                     <label className="label">Fetched Metal Payload</label>
                     <div className="control">
-                        <textarea className="textarea" value={payload} readOnly={true} />
+                        <textarea className="textarea" value={ payload } readOnly={ true }/>
+                    </div>
+                </div>
+                <div className="field">
+                    <label className="label">Fetched Metal Text Section</label>
+                    <div className="control">
+                        <textarea className="textarea" value={ text } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Forged Metal ID</label>
                     <div className="control">
-                        <input type="text" className="input" value={metalId} readOnly={true} />
+                        <input type="text" className="input" value={ metalId } readOnly={ true }/>
                     </div>
                 </div>
             </div> : null }

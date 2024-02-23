@@ -5,7 +5,7 @@
   "dependencies": {
     "bulma": "^0.9.4",
     "js-base64": "^3.7.3",
-    "metal-on-symbol": "^0.3.1-rc.4",
+    "metal-on-symbol": "^0.3.1-rc.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.40.0",
