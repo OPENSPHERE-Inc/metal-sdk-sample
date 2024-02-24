@@ -49,6 +49,9 @@ decode(
             const seal = MetalSeal.parse(text);
             const contentType = seal.mimeType ?? "application/octet-stream";
             fileName = seal.name || `${key}.${mime.getExtension(contentType) ?? "out"}`;
+
+            console.debug(`Decoded Metal Seal: schema=${seal.schema},length=${seal.length},mimeType=${seal.mimeType},` +
+                `name=${seal.name},comment=${seal.comment}`);
         } catch (e) {}
     }
     fs.writeFileSync(fileName, payload);

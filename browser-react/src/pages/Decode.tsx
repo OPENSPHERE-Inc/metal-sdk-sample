@@ -26,8 +26,14 @@ interface FormData {
 const Decode = () => {
     const [ payload, setPayload ] = useState<Uint8Array>();
     const [ text, setText ] = useState<string>();
+    const [ seal, setSeal ] = useState<MetalSeal>();
     const [ error, setError ] = useState<string>();
-    const { handleSubmit, register, getValues, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
+    const {
+        handleSubmit,
+        register,
+        getValues,
+        formState: { errors, isValid, isSubmitting }
+    } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             type: MetadataType.Account,
@@ -63,6 +69,13 @@ const Decode = () => {
             }
             setPayload(payload);
             setText(text);
+            try {
+                if (text) {
+                    setSeal(MetalSeal.parse(text));
+                }
+            } catch(e) {
+                console.warn("The text section seems not a Metal Seal.");
+            }
         } catch (e) {
             console.error(e);
             setError(String(e));
@@ -74,20 +87,12 @@ const Decode = () => {
             return;
         }
 
-        const key = getValues("key");
-        let contentType = "application/octet-stream";
-        let fileName: string | undefined;
-        if (text) {
-            try {
-                const seal = MetalSeal.parse(text);
-                contentType = seal.mimeType ?? contentType;
-                fileName = seal.name ?? `${key}.${mime.getExtension(contentType) ?? "out"}`;
-            } catch (e) {}
-        }
+        let contentType = seal?.mimeType ?? "application/octet-stream";
+        let fileName = seal?.name ?? `${getValues("key")}.${mime.getExtension(contentType) ?? "out"}`;
 
         const blob = new Blob([ payload.buffer ], { type: contentType });
         saveAs(blob, fileName);
-    }, [payload, text, getValues]);
+    }, [payload, seal, getValues]);
 
     return (<div className="content">
         <h1 className="title is-3">Decode Metal payload sample</h1>
@@ -178,7 +183,7 @@ const Decode = () => {
                 <div className="field">
                     <label className="label">Decoded Payload</label>
                     <div className="control">
-                        <textarea className="textarea" value={Convert.uint8ToHex(payload)} readOnly={true} />
+                        <textarea className="textarea" value={ Convert.uint8ToHex(payload) } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
@@ -188,13 +193,80 @@ const Decode = () => {
                         </button>
                     </div>
                 </div>
-            </div> : null }
 
-            { text ? <div className="notification is-success is-light">
                 <div className="field">
                     <label className="label">Decoded Text Section</label>
                     <div className="control">
-                        <textarea className="textarea" value={text} readOnly={true} />
+                        <textarea className="textarea" value={ text } readOnly={ true }/>
+                    </div>
+                </div>
+            </div> : null }
+
+            { seal ? <div className="notification is-success is-light">
+                <label className="label">Decoded Metal Seal</label>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Schema</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.schema }/>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Size</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.length }/>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Mime Type</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.mimeType }/>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Name</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.name }/>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Comment</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.comment }/>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div> : null }

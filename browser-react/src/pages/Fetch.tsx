@@ -32,8 +32,14 @@ interface Metal {
 
 const Fetch = () => {
     const [ metal, setMetal ] = useState<Metal>();
+    const [ seal, setSeal ] = useState<MetalSeal>();
     const [ error, setError ] = useState<string>();
-    const { handleSubmit, register, getValues, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
+    const {
+        handleSubmit,
+        register,
+        getValues,
+        formState: { errors, isValid, isSubmitting }
+    } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             metal_id: "FeEAJjHDoDgzpZaUyS7dru196aLHLBZKddDnj6SS57g8qR",
@@ -45,6 +51,13 @@ const Fetch = () => {
             setMetal(undefined);
             const result = await metalService.fetchByMetalId(data.metal_id);
             setMetal(result);
+            try {
+                if (result.text) {
+                    setSeal(MetalSeal.parse(result.text));
+                }
+            } catch(e) {
+                console.warn("The text section seems not a Metal Seal.");
+            }
         } catch (e) {
             console.error(e);
             setError(String(e));
@@ -56,20 +69,12 @@ const Fetch = () => {
             return;
         }
 
-        const metalId = getValues("metal_id");
-        let contentType = "application/octet-stream";
-        let fileName: string | undefined;
-        if (metal.text) {
-            try {
-                const seal = MetalSeal.parse(metal.text);
-                contentType = seal.mimeType ?? contentType;
-                fileName = seal.name ?? `${metalId}.${mime.getExtension(contentType) ?? "out"}`;
-            } catch (e) {}
-        }
+        let contentType = seal?.mimeType ?? "application/octet-stream";
+        let fileName = seal?.name ?? `${getValues("metal_id")}.${mime.getExtension(contentType) ?? "out"}`;
 
         const blob = new Blob([ metal.payload.buffer ], { type: contentType });
         saveAs(blob, fileName);
-    }, [metal, getValues]);
+    }, [metal, seal, getValues]);
 
     return (<div className="content">
         <h1 className="title is-3">Fetch Metal by Metal ID sample</h1>
@@ -149,6 +154,75 @@ const Fetch = () => {
                     <label className="label">Metadata Key</label>
                     <div className="control">
                         <input type="text" className="input" value={ metal.key.toHex() } readOnly={ true }/>
+                    </div>
+                </div>
+            </div> : null }
+
+            { seal ? <div className="notification is-success is-light">
+                <label className="label">Decoded Metal Seal</label>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Schema</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.schema }/>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Size</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.length }/>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Mime Type</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.mimeType }/>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Name</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.name }/>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="field is-horizontal">
+                    <div className="field-label is-normal">
+                        <label className="label">Comment</label>
+                    </div>
+                    <div className="field-body">
+                        <div className="field">
+                            <p className="control is-expanded">
+                                <input className="input" type="text" readOnly={ true } value={ seal.comment }/>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div> : null }
