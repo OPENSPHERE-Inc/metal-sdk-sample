@@ -1,9 +1,10 @@
 import assert from "assert";
-import { MetalServiceV2, SymbolService } from "metal-on-symbol";
-import { useCallback, useState } from "react";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
+import React, { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
-import { Account, Convert, MetadataType, MosaicId } from "symbol-sdk";
+import { Account, MetadataType, MosaicId } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -18,23 +19,52 @@ interface FormData {
     private_key: string;
     type: MetadataType;
     target_id?: string;
-    payload: string;
+    payload?: File;
     additive: number;
     text?: string;
 }
 
+const readFile = async (file: File) => await new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        if (event.target?.result) {
+            resolve(event.target.result as ArrayBuffer);
+        } else {
+            reject(new TypeError("Result isn't an ArrayBuffer"));
+        }
+    };
+    reader.onerror = (error) => {
+        reject(error);
+    };
+    reader.readAsArrayBuffer(file);
+});
+
 const ScrapByPayload = () => {
     const [ error, setError ] = useState<string>();
     const [ succeeded, setSucceeded ] = useState<boolean>();
-    const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
+    const {
+        handleSubmit,
+        register,
+        setValue,
+        watch,
+        trigger,
+        formState: { errors, isValid, isSubmitting }
+    } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             type: MetadataType.Account,
             additive: 0,
         },
     });
+    const watchPayload = watch("payload");
 
     const scrapByPayload = useCallback(async (data: FormData) => {
+        if (!data.payload) {
+            setError("Payload required.");
+            return;
+        }
+        const payload = data.payload;
+
         try {
             setError(undefined);
             setSucceeded(undefined);
@@ -44,12 +74,14 @@ const ScrapByPayload = () => {
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
+            const payloadBuffer = await readFile(payload);
+
             const txs = await metalService.createDestroyTxs(
                 data.type,
                 signerAccount.publicAccount,
                 signerAccount.publicAccount,
                 targetId,
-                Convert.utf8ToUint8(data.payload),
+                new Uint8Array(payloadBuffer),
                 data.additive,
                 data.text,
             );
@@ -75,15 +107,34 @@ const ScrapByPayload = () => {
         }
     }, []);
 
+    const handlePayloadChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+            return;
+        }
+        setValue("payload", file);
+        setValue("text", new MetalSeal(file.size, mime.getType(file.name) ?? undefined).stringify());
+        await trigger();
+    }, [ setValue, trigger ]);
+
+    useEffect(() => {
+        if (watchPayload) {
+            setError(undefined);
+        } else {
+            setError("Payload required.");
+        }
+    }, [watchPayload]);
+
     return (<div className="content">
         <h1 className="title is-3">Scrap Metal by payload sample</h1>
 
-        <form onSubmit={handleSubmit(scrapByPayload)}>
+        <form onSubmit={ handleSubmit(scrapByPayload) }>
             <div className="field">
                 <label className="label">Private Key (* The account will be signer/target/source)</label>
                 <div className="control">
-                    <input className={`input ${errors.private_key ? "is-danger" : ""}`} type="password" autoComplete="off" {
-                        ...register("private_key", { required: "Required field." }) }
+                    <input className={ `input ${ errors.private_key ? "is-danger" : "" }` } type="password"
+                           autoComplete="off" {
+                               ...register("private_key", { required: "Required field." }) }
                     />
                 </div>
             </div>
@@ -97,10 +148,10 @@ const ScrapByPayload = () => {
                 <label className="label">Metadata Type (*)</label>
                 <div className="control">
                     <div className="select">
-                        <select { ...register('type', { required: "Required field." })}>
-                            <option value={MetadataType.Account}>Account</option>
-                            <option value={MetadataType.Mosaic}>Mosaic</option>
-                            <option value={MetadataType.Namespace}>Namespace</option>
+                        <select { ...register('type', { required: "Required field." }) }>
+                            <option value={ MetadataType.Account }>Account</option>
+                            <option value={ MetadataType.Mosaic }>Mosaic</option>
+                            <option value={ MetadataType.Namespace }>Namespace</option>
                         </select>
                     </div>
                 </div>
@@ -109,7 +160,7 @@ const ScrapByPayload = () => {
             <div className="field">
                 <label className="label">Target ID (Mosaic ID / Namespace ID, Leave blank when Account metadata)</label>
                 <div className="control">
-                    <input className={`input ${errors.target_id ? "is-danger" : ""}`} type="text" {
+                    <input className={ `input ${ errors.target_id ? "is-danger" : "" }` } type="text" {
                         ...register("target_id") }
                     />
                 </div>
@@ -124,11 +175,11 @@ const ScrapByPayload = () => {
                 <label className="label">Additive (Default:0)</label>
                 <div className="control">
                     <input
-                        className={`input ${errors.additive ? "is-danger" : ""}`}
+                        className={ `input ${ errors.additive ? "is-danger" : "" }` }
                         type="number"
-                        min={0}
-                        max={65535}
-                        step={1}
+                        min={ 0 }
+                        max={ 65535 }
+                        step={ 1 }
                         { ...register("additive", {
                             valueAsNumber: true,
                         }) }
@@ -142,10 +193,32 @@ const ScrapByPayload = () => {
             </div> }
 
             <div className="field">
+                <label className="label">Payload (*)</label>
+                <div className="control">
+                    <div className="file has-name is-fullwidth">
+                        <label className="file-label">
+                            <input className="file-input" type="file" onChange={ handlePayloadChange }/>
+                            <span className="file-cta">
+                                <span className="file-icon">
+                                    <i className="fas fa-upload"></i>
+                                </span>
+                                <span className="file-label">
+                                    Choose a file…
+                                </span>
+                            </span>
+                            <span className="file-name">
+                                { watchPayload?.name ?? "Empty" }
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div className="field">
                 <label className="label">Text Section</label>
                 <div className="control">
                     <input
-                        className={`input ${errors.text ? "is-danger" : ""}`}
+                        className={ `input ${ errors.text ? "is-danger" : "" }` }
                         type="text"
                         { ...register("text") }
                     />
@@ -157,23 +230,9 @@ const ScrapByPayload = () => {
                 </p>
             </div> }
 
-            <div className="field">
-                <label className="label">Payload</label>
-                <div className="control">
-                    <textarea className={`textarea ${errors.payload ? "is-danger" : ""}`}
-                              { ...register("payload", { required: "Required field." }) }
-                    />
-                </div>
-            </div>
-            { errors.payload && <div className="field">
-                <p className="help is-danger">
-                    { errors.payload.message }
-                </p>
-            </div> }
-
             <div className="buttons is-centered">
-                <button className={`button is-primary ${isSubmitting ? "is-loading" : ""}`}
-                        disabled={!isValid || isSubmitting}
+                <button className={ `button is-primary ${ isSubmitting ? "is-loading" : "" }` }
+                        disabled={ !isValid || isSubmitting || !watchPayload }
                 >
                     Execute
                 </button>

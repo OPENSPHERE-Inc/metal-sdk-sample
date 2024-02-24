@@ -1,5 +1,7 @@
 import assert from "assert";
-import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { saveAs } from "file-saver";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
 import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
@@ -22,10 +24,10 @@ interface FormData {
 }
 
 const Decode = () => {
-    const [ payload, setPayload ] = useState<string>();
+    const [ payload, setPayload ] = useState<Uint8Array>();
     const [ text, setText ] = useState<string>();
     const [ error, setError ] = useState<string>();
-    const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
+    const { handleSubmit, register, getValues, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             type: MetadataType.Account,
@@ -59,13 +61,33 @@ const Decode = () => {
                 setError("Couldn't decode.");
                 return;
             }
-            setPayload(Convert.uint8ToHex(payload));
+            setPayload(payload);
             setText(text);
         } catch (e) {
             console.error(e);
             setError(String(e));
         }
     }, []);
+
+    const save = useCallback(async () => {
+        if (!payload) {
+            return;
+        }
+
+        const key = getValues("key");
+        let contentType = "application/octet-stream";
+        let fileName: string | undefined;
+        if (text) {
+            try {
+                const seal = MetalSeal.parse(text);
+                contentType = seal.mimeType ?? contentType;
+                fileName = seal.name ?? `${key}.${mime.getExtension(contentType) || "bin"}`;
+            } catch (e) {}
+        }
+
+        const blob = new Blob([ payload.buffer ], { type: contentType });
+        saveAs(blob, fileName);
+    }, [payload, text, getValues]);
 
     return (<div className="content">
         <h1 className="title is-3">Decode Metal payload sample</h1>
@@ -156,7 +178,14 @@ const Decode = () => {
                 <div className="field">
                     <label className="label">Decoded Payload</label>
                     <div className="control">
-                        <textarea className="textarea" value={payload} readOnly={true} />
+                        <textarea className="textarea" value={Convert.uint8ToHex(payload)} readOnly={true} />
+                    </div>
+                </div>
+                <div className="field">
+                    <div className="control">
+                        <button type="button" className="button is-link" onClick={ save }>
+                            Save
+                        </button>
                     </div>
                 </div>
             </div> : null }

@@ -1,9 +1,10 @@
 import assert from "assert";
-import { MetalServiceV2, SymbolService } from "metal-on-symbol";
-import { useCallback, useState } from "react";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
+import React, { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
-import { Account, Convert, MetadataType, MosaicId } from "symbol-sdk";
+import { Account, MetadataType, MosaicId } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -20,23 +21,52 @@ interface FormData {
     target_id?: string;
     additive?: number;
     text?: string;
-    payload: string;
+    payload?: File;
 }
+
+const readFile = async (file: File) => await new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        if (event.target?.result) {
+            resolve(event.target.result as ArrayBuffer);
+        } else {
+            reject(new TypeError("Result isn't an ArrayBuffer"));
+        }
+    };
+    reader.onerror = (error) => {
+        reject(error);
+    };
+    reader.readAsArrayBuffer(file);
+});
 
 const Forge = () => {
     const [ metalId, setMetalId ] = useState<string>();
     const [ key, setKey ] = useState<string>();
     const [ additive, setAdditive ] = useState<number>();
     const [ error, setError ] = useState<string>();
-    const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
+    const {
+        handleSubmit,
+        register,
+        setValue,
+        watch,
+        trigger,
+        formState: { errors, isValid, isSubmitting }
+    } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             type: MetadataType.Account,
             additive: 0,
         },
     });
+    const watchPayload = watch("payload");
 
     const forge = useCallback(async (data: FormData) => {
+        if (!data.payload) {
+            setError("Payload required.");
+            return;
+        }
+        const payload = data.payload;
+
         try {
             setMetalId(undefined);
             setError(undefined);
@@ -46,12 +76,14 @@ const Forge = () => {
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
+            const payloadBuffer = await readFile(payload);
+
             const { key, txs, additive } = await metalService.createForgeTxs(
                 data.type,
                 signerAccount.publicAccount,
                 signerAccount.publicAccount,
                 targetId,
-                Convert.utf8ToUint8(data.payload),
+                new Uint8Array(payloadBuffer),
                 data.additive,
                 data.text,
             );
@@ -81,6 +113,24 @@ const Forge = () => {
             setError(String(e));
         }
     }, []);
+
+    const handlePayloadChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+            return;
+        }
+        setValue("payload", file);
+        setValue("text", new MetalSeal(file.size, mime.getType(file.name) ?? undefined).stringify());
+        await trigger();
+    }, [ setValue, trigger ]);
+
+    useEffect(() => {
+        if (watchPayload) {
+            setError(undefined);
+        } else {
+            setError("Payload required.");
+        }
+    }, [watchPayload]);
 
     return (<div className="content">
         <h1 className="title is-3">Forge Metal sample</h1>
@@ -149,6 +199,28 @@ const Forge = () => {
             </div> }
 
             <div className="field">
+                <label className="label">Payload (*)</label>
+                <div className="control">
+                    <div className="file has-name is-fullwidth">
+                        <label className="file-label">
+                            <input className="file-input" type="file" onChange={handlePayloadChange} />
+                            <span className="file-cta">
+                                <span className="file-icon">
+                                    <i className="fas fa-upload"></i>
+                                </span>
+                                <span className="file-label">
+                                    Choose a file…
+                                </span>
+                            </span>
+                            <span className="file-name">
+                                { watchPayload?.name ?? "Empty" }
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div className="field">
                 <label className="label">Text Section</label>
                 <div className="control">
                     <input
@@ -164,23 +236,10 @@ const Forge = () => {
                 </p>
             </div> }
 
-            <div className="field">
-                <label className="label">Payload</label>
-                <div className="control">
-                    <textarea className={`textarea ${errors.payload ? "is-danger" : ""}`}
-                              { ...register("payload", { required: "Required field." }) }
-                    />
-                </div>
-            </div>
-            { errors.payload && <div className="field">
-                <p className="help is-danger">
-                    { errors.payload.message }
-                </p>
-            </div> }
 
             <div className="buttons is-centered">
                 <button className={`button is-primary ${isSubmitting ? "is-loading" : ""}`}
-                        disabled={!isValid || isSubmitting}
+                        disabled={!isValid || isSubmitting || !watchPayload}
                 >
                     Execute
                 </button>

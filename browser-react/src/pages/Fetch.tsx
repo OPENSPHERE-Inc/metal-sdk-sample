@@ -1,5 +1,7 @@
 import assert from "assert";
-import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { saveAs } from "file-saver";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
 import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
@@ -31,7 +33,7 @@ interface Metal {
 const Fetch = () => {
     const [ metal, setMetal ] = useState<Metal>();
     const [ error, setError ] = useState<string>();
-    const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
+    const { handleSubmit, register, getValues, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             metal_id: "FeEAJjHDoDgzpZaUyS7dru196aLHLBZKddDnj6SS57g8qR",
@@ -48,6 +50,26 @@ const Fetch = () => {
             setError(String(e));
         }
     }, []);
+
+    const save = useCallback(async () => {
+        if (!metal) {
+            return;
+        }
+
+        const metalId = getValues("metal_id");
+        let contentType = "application/octet-stream";
+        let fileName: string | undefined;
+        if (metal.text) {
+            try {
+                const seal = MetalSeal.parse(metal.text);
+                contentType = seal.mimeType ?? contentType;
+                fileName = seal.name ?? `${metalId}.${mime.getExtension(contentType) || "bin"}`;
+            } catch (e) {}
+        }
+
+        const blob = new Blob([ metal.payload.buffer ], { type: contentType });
+        saveAs(blob, fileName);
+    }, [metal, getValues]);
 
     return (<div className="content">
         <h1 className="title is-3">Fetch Metal by Metal ID sample</h1>
@@ -86,9 +108,16 @@ const Fetch = () => {
                     </div>
                 </div>
                 <div className="field">
+                    <div className="control">
+                        <button type="button" className="button is-link" onClick={save}>
+                            Save
+                        </button>
+                    </div>
+                </div>
+                <div className="field">
                     <label className="label">Fetched Metal Text Section</label>
                     <div className="control">
-                        <textarea className="textarea" value={ Convert.uint8ToHex(metal.text) } readOnly={ true }/>
+                        <textarea className="textarea" value={ metal.text } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
