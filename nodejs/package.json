@@ -1,6 +1,6 @@
 {
   "name": "metal-on-symbol-sample",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "Metal on Symbol TypeScript SDK Sample Code",
   "main": "index.js",
   "author": "Shinichi Hanayama <hanatyan@opensphere.co.jp>",
