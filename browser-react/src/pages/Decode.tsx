@@ -81,7 +81,7 @@ const Decode = () => {
             try {
                 const seal = MetalSeal.parse(text);
                 contentType = seal.mimeType ?? contentType;
-                fileName = seal.name ?? `${key}.${mime.getExtension(contentType) || "bin"}`;
+                fileName = seal.name ?? `${key}.${mime.getExtension(contentType) ?? "out"}`;
             } catch (e) {}
         }
 

@@ -88,7 +88,7 @@ const FetchByKey = () => {
             try {
                 const seal = MetalSeal.parse(text);
                 contentType = seal.mimeType ?? contentType;
-                fileName = seal.name ?? `${metalId}.${mime.getExtension(contentType) || "bin"}`;
+                fileName = seal.name ?? `${metalId}.${mime.getExtension(contentType) ?? "out"}`;
             } catch (e) {}
         }
 
