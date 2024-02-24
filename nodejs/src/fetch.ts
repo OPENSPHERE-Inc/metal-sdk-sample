@@ -1,11 +1,12 @@
 import "./env"
 import assert from "assert";
-import {MetalServiceV2, SymbolService} from "metal-on-symbol";
-import {Convert} from "symbol-sdk";
+import fs from "fs";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
-const metalId = "Your Metal ID here";
+const metalId = process.argv[2];
 // -----------------------
 
 assert(nodeUrl);
@@ -23,8 +24,19 @@ fetchMetal(
         `Fetched! type=${result.type},sourceAddr=${result.sourceAddress.plain()},` +
         `targetAddr=${result.targetAddress.plain()},targetId=${result.targetId?.toHex()},key=${result.key.toHex()}`
     );
-    console.log(Convert.uint8ToUtf8(result.payload));
-    console.log(result.text);
+
+    let fileName = `${metalId}.out`;
+    if (result.text) {
+        try {
+            const seal = MetalSeal.parse(result.text);
+            const contentType = seal.mimeType ?? "application/octet-stream";
+            fileName = seal.name || `${metalId}.${mime.getExtension(contentType) ?? "out"}`;
+        } catch (e) {}
+    }
+    fs.writeFileSync(fileName, result.payload);
+
+    console.log(`Saved Payload File: ${fileName}`);
+    console.log(`Text Section: ${result.text}`);
 }).catch((e) => {
     console.error(e);
     process.exit(1);

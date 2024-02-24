@@ -1,14 +1,20 @@
 import "./env";
-import {MetalServiceV2, SymbolService} from "metal-on-symbol";
-import {Account, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount} from "symbol-sdk";
 import assert from "assert";
+import * as fs from "fs";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
+import { Account, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount } from "symbol-sdk";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
 const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signer/source/target
-const payload = Convert.utf8ToUint8("Test Data Here");
-const text = "Text Section Here";
+const payloadFilePath = process.argv[2];
+let text = process.argv[3];
 // -----------------------
+
+assert(payloadFilePath);
+const payload = fs.readFileSync(payloadFilePath);
+text = text ?? new MetalSeal(payload.length, mime.getType(payloadFilePath) ?? undefined).stringify();
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });

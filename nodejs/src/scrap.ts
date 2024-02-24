@@ -6,7 +6,7 @@ import assert from "assert";
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
 const privateKey = process.env.TEST_PRIVATE_KEY;  // The account will be signer/source/target
-const metalId = "Your Metal ID here";
+const metalId = process.argv[2];
 // -----------------------
 
 assert(nodeUrl);
