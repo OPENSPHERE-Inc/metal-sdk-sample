@@ -1,19 +1,24 @@
-import dotenv from "dotenv";
-dotenv.config();
-
-import {Account, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount} from "symbol-sdk";
-import {MetalService, SymbolService} from "metal-on-symbol";
+import "./env";
 import assert from "assert";
+import fs from "fs";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
+import { Account, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount } from "symbol-sdk";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
 const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signer/source/target
-const payload = Convert.utf8ToUint8("Test Data Here");
+const payloadFilePath = process.argv[2];
+let text = process.argv[3];
 // -----------------------
+
+assert(payloadFilePath);
+const payload = fs.readFileSync(payloadFilePath);
+text = text ?? new MetalSeal(payload.length, mime.getType(payloadFilePath) ?? undefined).stringify();
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 assert(privateKey);
 const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
@@ -26,9 +31,10 @@ const forgeMetal = async (
     payload: Uint8Array,
     signerAccount: Account,
     cosignerAccounts: Account[],
-    additive?: Uint8Array,
+    additive?: number,
+    text?: string,
 ) => {
-    const metadataPool = await symbolService.searchMetadata(
+    const metadataPool = await symbolService.searchBinMetadata(
         type,
         {
             source: sourcePubAccount,
@@ -42,6 +48,7 @@ const forgeMetal = async (
         targetId,
         payload,
         additive,
+        text,
         metadataPool,
     );
     const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
@@ -53,7 +60,7 @@ const forgeMetal = async (
     if (errors) {
         throw Error("Transaction error.");
     }
-    const metalId = MetalService.calculateMetalId(
+    const metalId = MetalServiceV2.calculateMetalId(
         type,
         sourcePubAccount.address,
         targetPubAccount.address,
@@ -75,9 +82,11 @@ forgeMetal(
     undefined,
     payload,
     signerAccount,
-    []
+    [],
+    undefined,
+    text,
 ).then(({ metalId, key, additive }) => {
-    console.log(`Forged! metalId=${metalId},key=${key.toHex()},additive=${Convert.uint8ToUtf8(additive)}`);
+    console.log(`Forged! metalId=${metalId},key=${key.toHex()},additive=${additive}`);
 }).catch((e) => {
     console.error(e);
     process.exit(1);

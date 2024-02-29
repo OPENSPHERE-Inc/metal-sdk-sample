@@ -1,9 +1,10 @@
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Account, Convert, MetadataType, MosaicId} from "symbol-sdk";
-import {useCallback, useState} from "react";
-import {useForm} from "react-hook-form";
-import {Link} from "react-router-dom";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
+import React, { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import { Account, MetadataType, MosaicId } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -12,32 +13,62 @@ const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_U
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 interface FormData {
     type: MetadataType;
     private_key: string;
     target_id?: string;
-    additive?: string;
-    payload: string;
+    additive?: number;
+    text?: string;
+    payload?: File;
 }
+
+const readFile = async (file: File) => await new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        if (event.target?.result) {
+            resolve(event.target.result as ArrayBuffer);
+        } else {
+            reject(new TypeError("Result isn't an ArrayBuffer"));
+        }
+    };
+    reader.onerror = (error) => {
+        reject(error);
+    };
+    reader.readAsArrayBuffer(file);
+});
 
 const ForgeRecover = () => {
     const [ partial, setPartial ] = useState<boolean>();
     const [ metalId, setMetalId ] = useState<string>();
     const [ key, setKey ] = useState<string>();
-    const [ additive, setAdditive ] = useState<string>();
+    const [ additive, setAdditive ] = useState<number>();
     const [ error, setError ] = useState<string>();
-    const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
+    const {
+        handleSubmit,
+        register,
+        setValue,
+        watch,
+        trigger,
+        formState: { errors, isValid, isSubmitting }
+    } = useForm<FormData>({
         mode: "onBlur",
         defaultValues: {
             type: MetadataType.Account,
-            additive: "0000",
+            additive: 0,
         },
     });
+    const watchPayload = watch("payload");
 
     // Announce 1st TX only.
     const partialForge = useCallback(async (data: FormData) => {
+        if (!data.payload) {
+            setError("Payload required.");
+            return;
+        }
+        const payload = data.payload;
+
         try {
             setPartial(false);
             setMetalId(undefined);
@@ -48,13 +79,16 @@ const ForgeRecover = () => {
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
+            const payloadBuffer = await readFile(payload);
+
             const { txs } = await metalService.createForgeTxs(
                 data.type,
                 signerAccount.publicAccount,
                 signerAccount.publicAccount,
                 targetId,
-                Convert.utf8ToUint8(data.payload),
-                data.additive ? Convert.utf8ToUint8(data.additive) : undefined,
+                new Uint8Array(payloadBuffer),
+                data.additive,
+                data.text,
             );
             const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
                 txs.slice(0, 1),
@@ -76,6 +110,12 @@ const ForgeRecover = () => {
 
     // Announce all remaining TXs.
     const recoveryForge = useCallback(async (data: FormData) => {
+        if (!data.payload) {
+            setError("Payload required.");
+            return;
+        }
+        const payload = data.payload;
+
         try {
             setMetalId(undefined);
             setError(undefined);
@@ -85,7 +125,9 @@ const ForgeRecover = () => {
                 ? [ undefined, new MosaicId(data.target_id), SymbolService.createNamespaceId(data.target_id)][data.type]
                 : undefined;
 
-            const metadataPool = await symbolService.searchMetadata(
+            const payloadBuffer = await readFile(payload);
+
+            const metadataPool = await symbolService.searchBinMetadata(
                 data.type,
                 {
                     source: signer.publicAccount,
@@ -97,8 +139,9 @@ const ForgeRecover = () => {
                 signer.publicAccount,
                 signer.publicAccount,
                 targetId,
-                Convert.utf8ToUint8(data.payload),
-                data.additive ? Convert.utf8ToUint8(data.additive) : undefined,
+                new Uint8Array(payloadBuffer),
+                data.additive,
+                data.text,
                 metadataPool,
             );
             const batches = await symbolService.buildSignedAggregateCompleteTxBatches(
@@ -111,7 +154,7 @@ const ForgeRecover = () => {
                 setError("Transaction error.");
                 return;
             }
-            const metalId = MetalService.calculateMetalId(
+            const metalId = MetalServiceV2.calculateMetalId(
                 data.type,
                 signer.address,
                 signer.address,
@@ -120,7 +163,7 @@ const ForgeRecover = () => {
             );
 
             setMetalId(metalId);
-            setAdditive(Convert.uint8ToUtf8(additive));
+            setAdditive(additive);
             setKey(key.toHex());
             setPartial(false);
         } catch (e) {
@@ -129,15 +172,34 @@ const ForgeRecover = () => {
         }
     }, []);
 
-    return <div className="content">
+    const handlePayloadChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+            return;
+        }
+        setValue("payload", file);
+        setValue("text", new MetalSeal(file.size, mime.getType(file.name) ?? undefined).stringify());
+        await trigger();
+    }, [ setValue, trigger ]);
+
+    useEffect(() => {
+        if (watchPayload) {
+            setError(undefined);
+        } else {
+            setError("Payload required.");
+        }
+    }, [watchPayload]);
+
+    return (<div className="content">
         <h1 className="title is-3">Recovery Forge Metal sample</h1>
 
         <form>
             <div className="field">
                 <label className="label">Private Key (* The account will be signer/target/source)</label>
                 <div className="control">
-                    <input className={`input ${errors.private_key ? "is-danger" : ""}`} type="password" autoComplete="off" {
-                        ...register("private_key", { required: "Required field." }) }
+                    <input className={ `input ${ errors.private_key ? "is-danger" : "" }` } type="password"
+                           autoComplete="off" {
+                               ...register("private_key", { required: "Required field." }) }
                     />
                 </div>
             </div>
@@ -151,10 +213,10 @@ const ForgeRecover = () => {
                 <label className="label">Metadata Type (*)</label>
                 <div className="control">
                     <div className="select">
-                        <select { ...register('type', { required: "Required field." })}>
-                            <option value={MetadataType.Account}>Account</option>
-                            <option value={MetadataType.Mosaic}>Mosaic</option>
-                            <option value={MetadataType.Namespace}>Namespace</option>
+                        <select { ...register('type', { required: "Required field." }) }>
+                            <option value={ MetadataType.Account }>Account</option>
+                            <option value={ MetadataType.Mosaic }>Mosaic</option>
+                            <option value={ MetadataType.Namespace }>Namespace</option>
                         </select>
                     </div>
                 </div>
@@ -163,7 +225,7 @@ const ForgeRecover = () => {
             <div className="field">
                 <label className="label">Target ID (Mosaic ID / Namespace ID, Leave blank when Account metadata)</label>
                 <div className="control">
-                    <input className={`input ${errors.target_id ? "is-danger" : ""}`} type="text" {
+                    <input className={ `input ${ errors.target_id ? "is-danger" : "" }` } type="text" {
                         ...register("target_id") }
                     />
                 </div>
@@ -175,14 +237,15 @@ const ForgeRecover = () => {
             </div> }
 
             <div className="field">
-                <label className="label">Additive (Default:0000)</label>
+                <label className="label">Additive (Default:0)</label>
                 <div className="control">
-                    <input className={`input ${errors.additive ? "is-danger" : ""}`} type="text" {
-                        ...register("additive", {
-                            pattern: {
-                                value: /^[\x21-\x7e\s]{4}$/,
-                                message: "Additive must be 4 ascii characters"
-                            }
+                    <input
+                        className={ `input ${ errors.additive ? "is-danger" : "" }` }
+                        type="number"
+                        min={ 0 }
+                        max={ 65535 }
+                        { ...register("additive", {
+                            valueAsNumber: true,
                         }) }
                     />
                 </div>
@@ -194,29 +257,53 @@ const ForgeRecover = () => {
             </div> }
 
             <div className="field">
-                <label className="label">Payload (1,000 bytes or larger for proper test case)</label>
+                <label className="label">Payload (*)</label>
                 <div className="control">
-                    <textarea className={`textarea ${errors.payload ? "is-danger" : ""}`}
-                              { ...register("payload", { required: "Required field." }) }
+                    <div className="file has-name is-fullwidth">
+                        <label className="file-label">
+                            <input className="file-input" type="file" onChange={ handlePayloadChange }/>
+                            <span className="file-cta">
+                                <span className="file-icon">
+                                    <i className="fas fa-upload"></i>
+                                </span>
+                                <span className="file-label">
+                                    Choose a file…
+                                </span>
+                            </span>
+                            <span className="file-name">
+                                { watchPayload?.name ?? "Empty" }
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div className="field">
+                <label className="label">Text Section</label>
+                <div className="control">
+                    <input
+                        className={ `input ${ errors.text ? "is-danger" : "" }` }
+                        type="text"
+                        { ...register("text") }
                     />
                 </div>
             </div>
-            { errors.payload && <div className="field">
+            { errors.text && <div className="field">
                 <p className="help is-danger">
-                    { errors.payload.message }
+                    { errors.text.message }
                 </p>
             </div> }
 
             <div className="buttons is-centered">
-                <button className={`button is-warning ${isSubmitting ? "is-loading" : ""}`}
-                        disabled={!isValid || isSubmitting || partial}
-                        onClick={handleSubmit(partialForge)}
+                <button className={ `button is-warning ${ isSubmitting ? "is-loading" : "" }` }
+                        disabled={ !isValid || isSubmitting || !watchPayload || partial }
+                        onClick={ handleSubmit(partialForge) }
                 >
                     (1) Partial Forge
                 </button>
-                <button className={`button is-primary ${isSubmitting ? "is-loading" : ""}`}
-                        disabled={!isValid || isSubmitting || !partial}
-                        onClick={handleSubmit(recoveryForge)}
+                <button className={ `button is-primary ${ isSubmitting ? "is-loading" : "" }` }
+                        disabled={ !isValid || isSubmitting || !watchPayload || !partial }
+                        onClick={ handleSubmit(recoveryForge) }
                 >
                     (2) Recovery Forge
                 </button>
@@ -234,19 +321,19 @@ const ForgeRecover = () => {
                 <div className="field">
                     <label className="label">Forged Metal ID</label>
                     <div className="control">
-                        <input type="text" className="input" value={metalId} readOnly={true} />
+                        <input type="text" className="input" value={ metalId } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Header chunk Metadata Key</label>
                     <div className="control">
-                        <input type="text" className="input" value={key} readOnly={true} />
+                        <input type="text" className="input" value={ key } readOnly={ true }/>
                     </div>
                 </div>
                 <div className="field">
                     <label className="label">Additive</label>
                     <div className="control">
-                        <input type="text" className="input" value={additive} readOnly={true} />
+                        <input type="text" className="input" value={ additive } readOnly={ true }/>
                     </div>
                 </div>
             </div> : null }
@@ -255,7 +342,7 @@ const ForgeRecover = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default ForgeRecover;

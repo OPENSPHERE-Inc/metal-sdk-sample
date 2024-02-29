@@ -2,7 +2,7 @@ import {Link} from "react-router-dom";
 
 
 const Index = () => {
-    return <div className="content">
+    return (<div className="content">
         <h1 className="title is-3">Index of Samples</h1>
         <ul>
             <li><Link to="/decode">Decode Metal payload sample</Link></li>
@@ -14,7 +14,7 @@ const Index = () => {
             <li><Link to="/scrap-by-payload">Scrap Metal by Metal payload sample</Link></li>
             <li><Link to="/verify">Verify Metal sample</Link></li>
         </ul>
-    </div>;
+    </div>);
 };
 
 export default Index;

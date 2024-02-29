@@ -1,9 +1,9 @@
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {useCallback, useState} from "react";
-import {useForm} from "react-hook-form";
-import {Account} from "symbol-sdk";
-import {Link} from "react-router-dom";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import { useCallback, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import { Account } from "symbol-sdk";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -12,7 +12,7 @@ const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_U
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 interface FormData {
     metal_id: string;
@@ -63,7 +63,7 @@ const Scrap = () => {
         }
     }, []);
 
-    return <div className="content">
+    return (<div className="content">
         <h1 className="title is-3">Scrap Metal sample</h1>
 
         <form onSubmit={handleSubmit(scrap)}>
@@ -115,7 +115,7 @@ const Scrap = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default Scrap;

@@ -1,9 +1,8 @@
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {useCallback, useState} from "react";
-import {useForm} from "react-hook-form";
-import {Link} from "react-router-dom";
-import {Convert} from "symbol-sdk";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
+import React, { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
 
 
 assert(process.env.REACT_APP_NODE_URL);
@@ -12,23 +11,54 @@ const symbolService = new SymbolService({ node_url: process.env.REACT_APP_NODE_U
         websocketUrl: process.env.REACT_APP_NODE_URL.replace('http', 'ws') + '/ws',
     }
 });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 interface FormData {
     metal_id: string;
-    payload: string;
+    payload?: File;
 }
+
+const readFile = async (file: File) => await new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        if (event.target?.result) {
+            resolve(event.target.result as ArrayBuffer);
+        } else {
+            reject(new TypeError("Result isn't an ArrayBuffer"));
+        }
+    };
+    reader.onerror = (error) => {
+        reject(error);
+    };
+    reader.readAsArrayBuffer(file);
+});
 
 const Verify = () => {
     const [ succeeded, setSucceeded ] = useState<boolean>();
     const [ error, setError ] = useState<string>();
-    const { handleSubmit, register, formState: { errors, isValid, isSubmitting } } = useForm<FormData>({
+    const {
+        handleSubmit,
+        register,
+        setValue,
+        watch,
+        trigger,
+        formState: { errors, isValid, isSubmitting }
+    } = useForm<FormData>({
         mode: "onBlur",
     });
+    const watchPayload = watch("payload");
 
     const verify = useCallback(async (data: FormData) => {
+        if (!data.payload) {
+            setError("Payload required.");
+            return;
+        }
+        const payload = data.payload;
+
         try {
             setSucceeded(undefined);
+
+            const payloadBuffer = await readFile(payload);
 
             const {
                 metadataType: type,
@@ -38,7 +68,7 @@ const Verify = () => {
                 scopedMetadataKey: key,
             } = (await metalService.getFirstChunk(data.metal_id)).metadataEntry;
             const { mismatches, maxLength } = await metalService.verify(
-                Convert.utf8ToUint8(data.payload),
+                new Uint8Array(payloadBuffer),
                 type,
                 sourceAddress,
                 targetAddress,
@@ -57,14 +87,31 @@ const Verify = () => {
         }
     }, []);
 
-    return <div className="content">
+    const handlePayloadChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+            return;
+        }
+        setValue("payload", file);
+        await trigger();
+    }, [ setValue, trigger ]);
+
+    useEffect(() => {
+        if (watchPayload) {
+            setError(undefined);
+        } else {
+            setError("Payload required.");
+        }
+    }, [watchPayload]);
+
+    return (<div className="content">
         <h1 className="title is-3">Verify Metal sample</h1>
 
-        <form onSubmit={handleSubmit(verify)}>
+        <form onSubmit={ handleSubmit(verify) }>
             <div className="field">
                 <label className="label">Metal ID (*)</label>
                 <div className="control">
-                    <input className={`input ${errors.metal_id ? "is-danger" : ""}`} type="text" {
+                    <input className={ `input ${ errors.metal_id ? "is-danger" : "" }` } type="text" {
                         ...register("metal_id", { required: "Required field." }) }
                     />
                 </div>
@@ -76,22 +123,30 @@ const Verify = () => {
             </div> }
 
             <div className="field">
-                <label className="label">Payload</label>
+                <label className="label">Payload (*)</label>
                 <div className="control">
-                    <textarea className={`textarea ${errors.payload ? "is-danger" : ""}`}
-                              { ...register("payload", { required: "Required field." }) }
-                    />
+                    <div className="file has-name is-fullwidth">
+                        <label className="file-label">
+                            <input className="file-input" type="file" onChange={ handlePayloadChange }/>
+                            <span className="file-cta">
+                                <span className="file-icon">
+                                    <i className="fas fa-upload"></i>
+                                </span>
+                                <span className="file-label">
+                                    Choose a file…
+                                </span>
+                            </span>
+                            <span className="file-name">
+                                { watchPayload?.name ?? "Empty" }
+                            </span>
+                        </label>
+                    </div>
                 </div>
             </div>
-            { errors.payload && <div className="field">
-                <p className="help is-danger">
-                    { errors.payload.message }
-                </p>
-            </div> }
 
             <div className="buttons is-centered">
-                <button className={`button is-primary ${isSubmitting ? "is-loading" : ""}`}
-                        disabled={!isValid || isSubmitting}>
+                <button className={ `button is-primary ${ isSubmitting ? "is-loading" : "" }` }
+                        disabled={ !isValid || isSubmitting || !watchPayload }>
                     Execute
                 </button>
             </div>
@@ -108,7 +163,7 @@ const Verify = () => {
                 <Link to="/" className="button is-text">Back to Index</Link>
             </div>
         </form>
-    </div>;
+    </div>);
 };
 
 export default Verify;

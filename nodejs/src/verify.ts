@@ -1,19 +1,20 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import "./env";
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Convert} from "symbol-sdk";
+import fs from "fs";
+import { MetalServiceV2, SymbolService } from "metal-on-symbol";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
-const metalId = "Your Metal ID here";
-const payload = Convert.utf8ToUint8("Test Data Here");
+const metalId = process.argv[2];
+const payloadFilePath = process.argv[3];
 // -----------------------
+
+assert(payloadFilePath);
+const payload = fs.readFileSync(payloadFilePath);
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 const verifyMetal = async (
     metalId: string,

@@ -1,19 +1,24 @@
-import dotenv from "dotenv";
-dotenv.config();
-
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Account, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount} from "symbol-sdk";
+import "./env";
 import assert from "assert";
+import fs from "fs";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
+import { Account, MetadataType, MosaicId, NamespaceId, NetworkType, PublicAccount } from "symbol-sdk";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
 const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signer/source/target
-const payload = Convert.utf8ToUint8("Test Data Here");
+const payloadFilePath = process.argv[2];
+let text = process.argv[3];
 // -----------------------
+
+assert(payloadFilePath);
+const payload = fs.readFileSync(payloadFilePath);
+text = text ?? new MetalSeal(payload.length, mime.getType(payloadFilePath) ?? undefined).stringify();
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 assert(privateKey);
 const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
@@ -24,7 +29,8 @@ const destroyMetal = async (
     targetPubAccount: PublicAccount,
     targetId: undefined | MosaicId | NamespaceId,
     payload: Uint8Array,
-    additive: Uint8Array,
+    additive: number,
+    text: string,
     signerAccount: Account,
     cosignerAccounts: Account[]
 ) => {
@@ -35,6 +41,7 @@ const destroyMetal = async (
         targetId,
         payload,
         additive,
+        text,
     );
     if (!txs) {
         throw Error("Transaction creation error.");
@@ -56,7 +63,8 @@ destroyMetal(
     signerAccount.publicAccount,
     undefined,
     payload,
-    Convert.utf8ToUint8("0000"),
+    0,
+    text,
     signerAccount,
     []
 ).then(() => {

@@ -1,19 +1,19 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import "./env"
 import assert from "assert";
-import {MetalService, SymbolService} from "metal-on-symbol";
-import {Account, Address, Convert, MetadataType, MosaicId, NamespaceId, NetworkType, UInt64} from "symbol-sdk";
+import fs from "fs";
+import { MetalSeal, MetalServiceV2, SymbolService } from "metal-on-symbol";
+import mime from "mime";
+import { Account, Address, MetadataType, MosaicId, NamespaceId, NetworkType, UInt64 } from "symbol-sdk";
 
 // Edit here -------------
 const nodeUrl = process.env.TEST_NODE_URL;
 const privateKey = process.env.TEST_PRIVATE_KEY;    // The account will be signer/source/target
-const key =  UInt64.fromHex("Your Metadata Key here");
+const key = UInt64.fromHex(process.argv[2]);
 // -----------------------
 
 assert(nodeUrl);
 const symbolService = new SymbolService({ node_url: nodeUrl });
-const metalService = new MetalService(symbolService);
+const metalService = new MetalServiceV2(symbolService);
 
 assert(privateKey);
 const signerAccount = Account.createFromPrivateKey(privateKey, NetworkType.TEST_NET);
@@ -25,9 +25,9 @@ const fetchMetal = async (
     targetId: undefined | MosaicId | NamespaceId,
     key: UInt64
 ) => {
-    const payload = await metalService.fetch(type, sourceAddress, targetAddress, targetId, key);
-    const metalId = MetalService.calculateMetalId(type, sourceAddress, targetAddress, targetId, key);
-    return { payload, metalId };
+    const { payload, text } = await metalService.fetch(type, sourceAddress, targetAddress, targetId, key);
+    const metalId = MetalServiceV2.calculateMetalId(type, sourceAddress, targetAddress, targetId, key);
+    return { payload, text, metalId };
 };
 
 fetchMetal(
@@ -36,9 +36,24 @@ fetchMetal(
     signerAccount.address,
     undefined,
     key,
-).then(({ payload, metalId }) => {
+).then(({ payload, text, metalId }) => {
     console.log(`Fetched! metalId=${metalId}`);
-    console.log(Convert.uint8ToUtf8(payload));
+
+    let fileName = `${metalId}.out`;
+    if (text) {
+        try {
+            const seal = MetalSeal.parse(text);
+            const contentType = seal.mimeType ?? "application/octet-stream";
+            fileName = seal.name || `${metalId}.${mime.getExtension(contentType) ?? "out"}`;
+
+            console.debug(`Decoded Metal Seal: schema=${seal.schema},length=${seal.length},mimeType=${seal.mimeType},` +
+                `name=${seal.name},comment=${seal.comment}`);
+        } catch (e) {}
+    }
+    fs.writeFileSync(fileName, payload);
+
+    console.log(`Saved Payload File: ${fileName}`);
+    console.log(`Text Section: ${text}`);
 }).catch((e) => {
     console.error(e);
     process.exit(1);
